@@ -22,4 +22,7 @@ export interface Exercise {
   safety_note: string | null;
   media_url: string | null;
   media_url_2?: string | null;
+  long_description?: string | null;
+  benefits?: string[] | null;
+  results_timeline?: string | null;
 }

@@ -24,6 +24,9 @@ import {
   Smile,
   Award,
   RotateCcw,
+  Calendar,
+  CheckCircle2,
+  Play,
 } from 'lucide-react';
 import { supabase, Exercise } from '@/lib/supabase';
 import { AGE_GROUPS, LevelKey } from '@/lib/data';
@@ -39,6 +42,7 @@ import LevelGuideModal from '@/components/LevelGuideModal';
 import BloomCoach from '@/components/BloomCoach';
 import ExerciseAnimator from '@/components/ExerciseAnimator';
 import MaintainerView from '@/components/MaintainerView';
+import GuidedExercisePlayer from '@/components/GuidedExercisePlayer';
 
 type NavTab = 'home' | 'maintainer' | 'exercises' | 'about';
 type ExerciseStep = 1 | 2 | 3;
@@ -62,19 +66,25 @@ export default function HomePage() {
 
   const [visibleCount, setVisibleCount] = useState<number>(24);
   const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
+  const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [guideLevel, setGuideLevel] = useState<LevelKey | null>(null);
 
   useEffect(() => {
     const fetchAllExercises = async () => {
-      const [res1, res2] = await Promise.all([
+      const [res1, res2, res3] = await Promise.all([
         supabase.from('exercises').select('*').order('name').range(0, 999),
         supabase.from('exercises').select('*').order('name').range(1000, 1999),
+        supabase.from('exercises').select('*').order('name').range(2000, 2999),
       ]);
 
       if (res1.error) {
         setDbError(res1.error.message);
       } else {
-        const combined = [...(res1.data || []), ...(res2.data || [])] as Exercise[];
+        const combined = [
+          ...(res1.data || []),
+          ...(res2.data || []),
+          ...(res3.data || []),
+        ] as Exercise[];
         setExercises(combined);
       }
       setLoading(false);
@@ -157,7 +167,7 @@ export default function HomePage() {
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-sky-100 via-indigo-50/70 to-pink-50/80 text-slate-800">
-      {/* Decorative Ambient Background Orbs */}
+      {/* Decorative Ambient Background Orbs (Consistent Across All Pages) */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-sky-300/35 blur-3xl" />
         <div className="absolute right-0 top-1/4 h-[28rem] w-[28rem] rounded-full bg-violet-300/30 blur-3xl" />
@@ -396,7 +406,7 @@ export default function HomePage() {
                 Live Animated Form
               </h3>
               <p className="mt-2 text-sm font-medium text-slate-600">
-                Smooth start-to-peak motion playback, inhale/exhale cues, live rep counter, and instant video demos.
+                Smooth start-to-peak motion playback, inhale/exhale cues, live rep counter, and instant guided sessions.
               </p>
             </div>
 
@@ -485,7 +495,7 @@ export default function HomePage() {
                     ? 'bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 text-white shadow-[4px_4px_0px_0px_#bae6fd]'
                     : exerciseStep > s.step
                     ? 'bg-sky-100 text-sky-800 hover:bg-sky-200'
-                    : 'bg-white/75 text-slate-400 border border-white'
+                    : 'border border-white bg-white/75 text-slate-400'
                 }`}
               >
                 {s.label}
@@ -543,7 +553,7 @@ export default function HomePage() {
                 })}
               </div>
 
-              {/* A-Z Specific Muscle Sub-Picker (if body part has multiple muscles) */}
+              {/* A-Z Specific Muscle Sub-Picker */}
               {activeBodyGroup && activeBodyGroup.muscles.length > 1 && (
                 <div className="mt-8 rounded-3xl border border-indigo-100 bg-indigo-50/60 p-5">
                   <p className="text-xs font-black uppercase tracking-wider text-indigo-700">
@@ -610,7 +620,6 @@ export default function HomePage() {
                 </p>
               </div>
 
-              {/* Target Goals */}
               <div className="mt-8">
                 <p className="mb-3 text-xs font-black uppercase tracking-wider text-rose-600">
                   Target Goal
@@ -641,7 +650,6 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Time of Day */}
               <div className="mt-8">
                 <p className="mb-3 text-xs font-black uppercase tracking-wider text-teal-700">
                   Time of Day
@@ -664,7 +672,6 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Back & Next Actions */}
               <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
                 <button
                   onClick={() => setExerciseStep(1)}
@@ -688,7 +695,6 @@ export default function HomePage() {
           {/* STEP 3: SHOW MATCHING EXERCISES */}
           {exerciseStep === 3 && (
             <div>
-              {/* Compact Summary & Search Header */}
               <div className="rounded-3xl border border-white bg-white/90 p-5 shadow-[8px_8px_0px_0px_#bae6fd] backdrop-blur-xl">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
@@ -724,7 +730,6 @@ export default function HomePage() {
                   </p>
                 )}
 
-                {/* Search & Age/Gender quick bar */}
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <div className="relative flex-1 min-w-[240px]">
                     <Search className="absolute left-3.5 top-3 h-4 w-4 text-sky-500" />
@@ -769,7 +774,6 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Exercise Grid */}
               {loading ? (
                 <p className="mt-12 text-center text-sm font-bold text-sky-700">
                   Loading your workout library...
@@ -793,13 +797,16 @@ export default function HomePage() {
               ) : (
                 <>
                   <p className="mt-6 text-xs font-extrabold uppercase tracking-wider text-sky-800">
-                    Showing {visibleExercises.length} of {filtered.length} matching workouts — click any card for live animation
+                    Showing {visibleExercises.length} of {filtered.length} matching workouts — click any card for live guide &amp; animation
                   </p>
                   <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {visibleExercises.map((ex) => (
                       <div
                         key={ex.id}
-                        onClick={() => setActiveExercise(ex)}
+                        onClick={() => {
+                          setActiveExercise(ex);
+                          setIsGuidedMode(false);
+                        }}
                         className="group cursor-pointer overflow-hidden rounded-3xl border border-white bg-white/90 shadow-[6px_6px_0px_0px_#bae6fd] backdrop-blur transition-all duration-200 hover:-translate-y-1.5 hover:shadow-[8px_8px_0px_0px_#7dd3fc]"
                       >
                         <div className="relative h-48 w-full overflow-hidden bg-sky-50">
@@ -868,7 +875,7 @@ export default function HomePage() {
               One Lovely Fitness Standard for Every Generation
             </h2>
             <p className="mt-4 text-sm font-medium leading-relaxed text-slate-600">
-              FitLife 0–90 was crafted to make daily fitness and body care simple, colorful, and welcoming. Whether it is supervised motor play for infants, athletic foundations for teens, full strength training for adults, or safe chair-assisted mobility for seniors, every movement is organized cleanly by body part, muscle, goal, time of day, and age.
+              FitLife 0–90 was crafted to make daily fitness and body care simple, colorful, and welcoming. Whether it is supervised motor play for infants, athletic foundations for teens, full strength training for adults, or safe chair-assisted mobility for seniors, every movement is organized cleanly by body part, A–Z muscle, goal, time of day, and age.
             </p>
 
             <div className="mt-8 grid gap-5 sm:grid-cols-2">
@@ -889,39 +896,104 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Exercise Details + Live Animation Modal */}
+      {/* Exercise Details + Full Description + "Start This Exercise" Guided Mode */}
       {activeExercise && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
-          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white bg-white p-6 text-slate-800 shadow-[10px_10px_0px_0px_#bae6fd]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm">
+          <div className="relative max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-white bg-white p-6 text-slate-800 shadow-[10px_10px_0px_0px_#bae6fd]">
             <button
-              onClick={() => setActiveExercise(null)}
+              onClick={() => {
+                setActiveExercise(null);
+                setIsGuidedMode(false);
+              }}
               className="absolute right-4 top-4 rounded-xl bg-sky-50 p-2 text-slate-500 hover:bg-sky-100 hover:text-slate-900"
             >
               <X className="h-5 w-5" />
             </button>
+
             <h2 className="pr-10 text-xl font-black text-slate-900">{activeExercise.name}</h2>
             <p className="mt-1 text-xs font-bold text-sky-600">
               {activeExercise.muscle_group} • {activeExercise.equipment} • {activeExercise.sets_reps}
             </p>
 
-            <ExerciseAnimator
-              name={activeExercise.name}
-              frame1={activeExercise.media_url}
-              frame2={activeExercise.media_url_2}
-            />
+            {isGuidedMode ? (
+              <div className="mt-4">
+                <GuidedExercisePlayer
+                  exercise={activeExercise}
+                  onExit={() => setIsGuidedMode(false)}
+                />
+              </div>
+            ) : (
+              <>
+                <ExerciseAnimator
+                  name={activeExercise.name}
+                  frame1={activeExercise.media_url}
+                  frame2={activeExercise.media_url_2}
+                />
 
-            <h3 className="mt-5 text-xs font-black uppercase tracking-wider text-slate-400">
-              How to Perform
-            </h3>
-            <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm font-medium text-slate-700">
-              {activeExercise.instructions.map((step, i) => (
-                <li key={i}>{step}</li>
-              ))}
-            </ol>
-            {activeExercise.safety_note && (
-              <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-xs font-bold text-amber-800">
-                <strong>Safety:</strong> {activeExercise.safety_note}
-              </p>
+                {/* BIG START THIS EXERCISE BUTTON */}
+                <button
+                  onClick={() => setIsGuidedMode(true)}
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 py-3.5 text-sm font-black text-white shadow-[5px_5px_0px_0px_#bae6fd] transition hover:-translate-y-0.5 hover:brightness-105"
+                >
+                  <Play className="h-4 w-4 fill-white" /> Start This Exercise (Live Guide &amp; Counter)
+                </button>
+
+                {/* FULL LONG DESCRIPTION */}
+                {activeExercise.long_description && (
+                  <div className="mt-5 rounded-2xl border border-sky-100 bg-sky-50/50 p-4">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-sky-700">
+                      Full Description
+                    </h3>
+                    <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-700">
+                      {activeExercise.long_description}
+                    </p>
+                  </div>
+                )}
+
+                {/* WHAT YOU WILL GET (BENEFITS) */}
+                {activeExercise.benefits && activeExercise.benefits.length > 0 && (
+                  <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-indigo-700">
+                      What You Will Get From Doing This
+                    </h3>
+                    <ul className="mt-2 space-y-1.5 text-xs font-semibold text-slate-700">
+                      {activeExercise.benefits.map((b, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500" />
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* HOW MANY DAYS IT TAKES TO SEE RESULTS */}
+                {activeExercise.results_timeline && (
+                  <div className="mt-4 rounded-2xl border border-pink-100 bg-pink-50/60 p-4">
+                    <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-rose-700">
+                      <Calendar className="h-3.5 w-3.5" /> How Many Days to See Results
+                    </h3>
+                    <p className="mt-1.5 text-xs font-semibold leading-relaxed text-rose-900">
+                      {activeExercise.results_timeline}
+                    </p>
+                  </div>
+                )}
+
+                <h3 className="mt-5 text-xs font-black uppercase tracking-wider text-slate-400">
+                  How to Perform
+                </h3>
+                <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm font-medium text-slate-700">
+                  {activeExercise.instructions.map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ol>
+
+                {activeExercise.safety_note && (
+                  <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-xs font-bold text-amber-800">
+                    <strong>Safety:</strong> {activeExercise.safety_note}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
