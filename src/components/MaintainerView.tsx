@@ -1,7 +1,17 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Activity, Clock, Bell, Droplets, CheckCircle2, HeartPulse, Flame, Moon, Footprints } from 'lucide-react';
+import {
+  Activity,
+  Clock,
+  Bell,
+  Droplets,
+  CheckCircle2,
+  HeartPulse,
+  Flame,
+  Moon,
+  Footprints,
+} from 'lucide-react';
 
 const HOURLY_NEEDS = [
   { hour: 6, time: '6:00 AM', title: 'Wake & Hydrate', need: '500ml warm water + 5 min sunlight & light mobility.' },
@@ -25,10 +35,12 @@ const HOURLY_NEEDS = [
 
 export default function MaintainerView() {
   const [subTab, setSubTab] = useState<'checkup' | 'hourly' | 'reminders'>('checkup');
-  const [age, setAge] = useState(21);
-  const [gender, setGender] = useState<'male' | 'female'>('male');
-  const [heightCm, setHeightCm] = useState(172);
-  const [weightKg, setWeightKg] = useState(68);
+
+  // Default: 18-year-old Female
+  const [age, setAge] = useState(18);
+  const [gender, setGender] = useState<'male' | 'female'>('female');
+  const [heightCm, setHeightCm] = useState(162);
+  const [weightKg, setWeightKg] = useState(54);
   const [activity, setActivity] = useState(1.55);
 
   const [waterGlasses, setWaterGlasses] = useState(0);
@@ -116,18 +128,21 @@ export default function MaintainerView() {
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-10">
-      {/* Header Card */}
-      <div className="rounded-3xl border-2 border-sky-900 bg-white p-6 shadow-[8px_8px_0px_0px_#0284c7] sm:p-8">
+      {/* Main Smooth Blurred-Shadow Glass Container */}
+      <div className="rounded-[2rem] border border-white/90 bg-white/85 p-6 shadow-2xl shadow-sky-200/60 backdrop-blur-xl sm:p-9">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-sky-900 bg-sky-200 px-3 py-1 text-xs font-black uppercase tracking-wider text-sky-950">
-              <HeartPulse className="h-3.5 w-3.5" /> Health Measuring Hub
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-sky-100 via-indigo-100 to-pink-100 px-3.5 py-1 text-xs font-bold text-indigo-700">
+              <HeartPulse className="h-3.5 w-3.5 text-rose-500" /> Health Measuring Hub
             </span>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">
-              Body <span className="text-sky-600">Maintainer</span>
+            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-800">
+              Body{' '}
+              <span className="bg-gradient-to-r from-sky-500 via-indigo-500 to-pink-500 bg-clip-text text-transparent">
+                Maintainer
+              </span>
             </h2>
-            <p className="mt-1 text-sm font-medium text-slate-600">
-              Calculate your full-body requirements, follow your hourly needs, and activate live health reminders.
+            <p className="mt-1 text-sm font-medium text-slate-500">
+              Calculate your full-body requirements, follow your hourly needs, and activate gentle reminders.
             </p>
           </div>
 
@@ -142,10 +157,10 @@ export default function MaintainerView() {
                 <button
                   key={t.id}
                   onClick={() => setSubTab(t.id as 'checkup' | 'hourly' | 'reminders')}
-                  className={`flex items-center gap-1.5 rounded-xl border-2 border-sky-900 px-4 py-2.5 text-xs font-extrabold transition-all ${
+                  className={`flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-xs font-bold transition-all ${
                     subTab === t.id
-                      ? 'bg-sky-500 text-white shadow-[4px_4px_0px_0px_#0c4a6e]'
-                      : 'bg-sky-50 text-sky-950 shadow-[3px_3px_0px_0px_#bae6fd] hover:translate-x-[1px] hover:translate-y-[1px]'
+                      ? 'bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 text-white shadow-lg shadow-sky-200/80'
+                      : 'border border-sky-100 bg-sky-50/70 text-slate-600 shadow-sm hover:bg-sky-100/70'
                   }`}
                 >
                   <Icon className="h-4 w-4" /> {t.label}
@@ -156,7 +171,7 @@ export default function MaintainerView() {
         </div>
 
         {alertBanner && (
-          <div className="mt-5 flex items-center justify-between rounded-2xl border-2 border-sky-900 bg-sky-200 px-4 py-3 text-xs font-extrabold text-sky-950 shadow-[4px_4px_0px_0px_#0c4a6e]">
+          <div className="mt-5 flex items-center justify-between rounded-2xl border border-sky-200 bg-sky-100/80 px-4 py-3 text-xs font-bold text-sky-900 shadow-md shadow-sky-100">
             <span>{alertBanner}</span>
             <button onClick={() => setAlertBanner(null)} className="underline">Dismiss</button>
           </div>
@@ -165,51 +180,51 @@ export default function MaintainerView() {
         {/* TAB 1: BODY CHECKUP */}
         {subTab === 'checkup' && (
           <div className="mt-8 space-y-6">
-            <div className="grid gap-4 rounded-2xl border-2 border-sky-900 bg-sky-50 p-5 sm:grid-cols-5">
-              <label className="text-xs font-extrabold uppercase text-sky-950">
+            <div className="grid gap-4 rounded-3xl border border-sky-100 bg-gradient-to-r from-sky-50/80 via-indigo-50/60 to-pink-50/60 p-5 shadow-inner sm:grid-cols-5">
+              <label className="text-xs font-bold text-slate-600">
                 Age
                 <input
                   type="number"
                   value={age}
                   onChange={(e) => setAge(Number(e.target.value))}
-                  className="mt-1.5 w-full rounded-xl border-2 border-sky-900 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none focus:bg-sky-100"
+                  className="mt-1.5 w-full rounded-2xl border border-white bg-white/90 px-3.5 py-2.5 text-sm font-bold text-slate-800 shadow-sm outline-none focus:ring-2 focus:ring-sky-300"
                 />
               </label>
-              <label className="text-xs font-extrabold uppercase text-sky-950">
+              <label className="text-xs font-bold text-slate-600">
                 Gender
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value as 'male' | 'female')}
-                  className="mt-1.5 w-full rounded-xl border-2 border-sky-900 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none"
+                  className="mt-1.5 w-full rounded-2xl border border-white bg-white/90 px-3.5 py-2.5 text-sm font-bold text-slate-800 shadow-sm outline-none focus:ring-2 focus:ring-sky-300"
                 >
-                  <option value="male">Male</option>
                   <option value="female">Female</option>
+                  <option value="male">Male</option>
                 </select>
               </label>
-              <label className="text-xs font-extrabold uppercase text-sky-950">
+              <label className="text-xs font-bold text-slate-600">
                 Height (cm)
                 <input
                   type="number"
                   value={heightCm}
                   onChange={(e) => setHeightCm(Number(e.target.value))}
-                  className="mt-1.5 w-full rounded-xl border-2 border-sky-900 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none"
+                  className="mt-1.5 w-full rounded-2xl border border-white bg-white/90 px-3.5 py-2.5 text-sm font-bold text-slate-800 shadow-sm outline-none focus:ring-2 focus:ring-sky-300"
                 />
               </label>
-              <label className="text-xs font-extrabold uppercase text-sky-950">
+              <label className="text-xs font-bold text-slate-600">
                 Weight (kg)
                 <input
                   type="number"
                   value={weightKg}
                   onChange={(e) => setWeightKg(Number(e.target.value))}
-                  className="mt-1.5 w-full rounded-xl border-2 border-sky-900 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none"
+                  className="mt-1.5 w-full rounded-2xl border border-white bg-white/90 px-3.5 py-2.5 text-sm font-bold text-slate-800 shadow-sm outline-none focus:ring-2 focus:ring-sky-300"
                 />
               </label>
-              <label className="text-xs font-extrabold uppercase text-sky-950">
+              <label className="text-xs font-bold text-slate-600">
                 Activity
                 <select
                   value={activity}
                   onChange={(e) => setActivity(Number(e.target.value))}
-                  className="mt-1.5 w-full rounded-xl border-2 border-sky-900 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none"
+                  className="mt-1.5 w-full rounded-2xl border border-white bg-white/90 px-3.5 py-2.5 text-sm font-bold text-slate-800 shadow-sm outline-none focus:ring-2 focus:ring-sky-300"
                 >
                   <option value={1.2}>Sedentary</option>
                   <option value={1.375}>Light</option>
@@ -220,54 +235,54 @@ export default function MaintainerView() {
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-2xl border-2 border-sky-900 bg-white p-5 shadow-[5px_5px_0px_0px_#38bdf8] transition hover:-translate-y-1">
-                <p className="text-xs font-extrabold uppercase text-slate-500">BMI Score</p>
-                <p className="mt-2 text-3xl font-black text-sky-600">{metrics.bmi}</p>
-                <span className="mt-2 inline-block rounded-lg bg-sky-100 px-2.5 py-1 text-xs font-bold text-sky-900">
+              <div className="rounded-3xl border border-white bg-gradient-to-br from-sky-50/90 to-white p-5 shadow-xl shadow-sky-200/50 transition hover:-translate-y-1">
+                <p className="text-xs font-bold uppercase text-slate-400">BMI Score</p>
+                <p className="mt-2 text-3xl font-extrabold text-sky-600">{metrics.bmi}</p>
+                <span className="mt-2 inline-block rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-sky-800">
                   {metrics.bmiLabel}
                 </span>
               </div>
 
-              <div className="rounded-2xl border-2 border-sky-900 bg-white p-5 shadow-[5px_5px_0px_0px_#0ea5e9] transition hover:-translate-y-1">
-                <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase text-slate-500">
-                  <Flame className="h-4 w-4 text-orange-500" /> Daily Calories
+              <div className="rounded-3xl border border-white bg-gradient-to-br from-amber-50/70 to-white p-5 shadow-xl shadow-amber-100/60 transition hover:-translate-y-1">
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-slate-400">
+                  <Flame className="h-4 w-4 text-orange-400" /> Daily Calories
                 </p>
-                <p className="mt-2 text-3xl font-black text-slate-900">{metrics.calories} kcal</p>
-                <p className="mt-1 text-xs font-semibold text-slate-500">Maintenance energy target</p>
+                <p className="mt-2 text-3xl font-extrabold text-slate-800">{metrics.calories} kcal</p>
+                <p className="mt-1 text-xs font-medium text-slate-500">Maintenance energy target</p>
               </div>
 
-              <div className="rounded-2xl border-2 border-sky-900 bg-white p-5 shadow-[5px_5px_0px_0px_#0284c7] transition hover:-translate-y-1">
-                <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase text-slate-500">
+              <div className="rounded-3xl border border-white bg-gradient-to-br from-cyan-50/80 to-white p-5 shadow-xl shadow-cyan-100/60 transition hover:-translate-y-1">
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-slate-400">
                   <Droplets className="h-4 w-4 text-sky-500" /> Daily Water Need
                 </p>
-                <p className="mt-2 text-3xl font-black text-blue-600">{metrics.waterLiters} L</p>
-                <p className="mt-1 text-xs font-semibold text-slate-500">~{metrics.targetGlasses} glasses (250ml)</p>
+                <p className="mt-2 text-3xl font-extrabold text-blue-600">{metrics.waterLiters} L</p>
+                <p className="mt-1 text-xs font-medium text-slate-500">~{metrics.targetGlasses} glasses (250ml)</p>
               </div>
 
-              <div className="rounded-2xl border-2 border-sky-900 bg-white p-5 shadow-[5px_5px_0px_0px_#38bdf8] transition hover:-translate-y-1">
-                <p className="text-xs font-extrabold uppercase text-slate-500">Daily Macros</p>
-                <p className="mt-2 text-lg font-black text-slate-900">
-                  Protein: <span className="text-sky-600">{metrics.proteinG}g</span>
+              <div className="rounded-3xl border border-white bg-gradient-to-br from-pink-50/80 to-white p-5 shadow-xl shadow-pink-100/60 transition hover:-translate-y-1">
+                <p className="text-xs font-bold uppercase text-slate-400">Daily Macros</p>
+                <p className="mt-2 text-lg font-extrabold text-slate-800">
+                  Protein: <span className="text-rose-500">{metrics.proteinG}g</span>
                 </p>
-                <p className="mt-1 text-xs font-bold text-slate-600">
+                <p className="mt-1 text-xs font-semibold text-slate-500">
                   Carbs: {metrics.carbsG}g • Fats: {metrics.fatsG}g
                 </p>
               </div>
 
-              <div className="rounded-2xl border-2 border-sky-900 bg-white p-5 shadow-[5px_5px_0px_0px_#818cf8] transition hover:-translate-y-1">
-                <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase text-slate-500">
-                  <Moon className="h-4 w-4 text-indigo-500" /> Sleep Requirement
+              <div className="rounded-3xl border border-white bg-gradient-to-br from-indigo-50/80 to-white p-5 shadow-xl shadow-indigo-100/60 transition hover:-translate-y-1">
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-slate-400">
+                  <Moon className="h-4 w-4 text-indigo-400" /> Sleep Requirement
                 </p>
-                <p className="mt-2 text-2xl font-black text-indigo-600">{metrics.sleepHrs}</p>
-                <p className="mt-1 text-xs font-semibold text-slate-500">Deep muscle & hormone repair</p>
+                <p className="mt-2 text-2xl font-extrabold text-indigo-600">{metrics.sleepHrs}</p>
+                <p className="mt-1 text-xs font-medium text-slate-500">Deep muscle &amp; hormone repair</p>
               </div>
 
-              <div className="rounded-2xl border-2 border-sky-900 bg-white p-5 shadow-[5px_5px_0px_0px_#2dd4bf] transition hover:-translate-y-1">
-                <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase text-slate-500">
+              <div className="rounded-3xl border border-white bg-gradient-to-br from-teal-50/80 to-white p-5 shadow-xl shadow-teal-100/60 transition hover:-translate-y-1">
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-slate-400">
                   <Footprints className="h-4 w-4 text-teal-500" /> Daily Steps
                 </p>
-                <p className="mt-2 text-2xl font-black text-teal-600">{metrics.steps}</p>
-                <p className="mt-1 text-xs font-semibold text-slate-500">Heart & joint longevity</p>
+                <p className="mt-2 text-2xl font-extrabold text-teal-600">{metrics.steps}</p>
+                <p className="mt-1 text-xs font-medium text-slate-500">Heart &amp; joint longevity</p>
               </div>
             </div>
           </div>
@@ -276,33 +291,33 @@ export default function MaintainerView() {
         {/* TAB 2: HOURLY NEEDS */}
         {subTab === 'hourly' && (
           <div className="mt-8 space-y-3">
-            <p className="text-xs font-bold text-sky-700">
-              Your current hour is highlighted automatically so you know what your body needs right now.
+            <p className="text-xs font-bold text-sky-600">
+              Your current hour is highlighted softly so you know what your body needs right now.
             </p>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3.5 md:grid-cols-2">
               {HOURLY_NEEDS.map((item) => {
                 const isNow = currentHour !== null && item.hour === currentHour;
                 return (
                   <div
                     key={item.hour}
-                    className={`rounded-2xl border-2 border-sky-900 p-4 transition ${
+                    className={`rounded-3xl border p-4 transition ${
                       isNow
-                        ? 'bg-sky-200 shadow-[5px_5px_0px_0px_#0c4a6e]'
-                        : 'bg-white shadow-[3px_3px_0px_0px_#bae6fd]'
+                        ? 'border-sky-300 bg-gradient-to-r from-sky-100/90 to-indigo-100/80 shadow-lg shadow-sky-200/60'
+                        : 'border-white bg-white/80 shadow-md shadow-sky-100/40'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="rounded-lg bg-sky-900 px-2.5 py-0.5 text-xs font-black text-white">
+                      <span className="rounded-full bg-sky-500 px-3 py-0.5 text-xs font-bold text-white">
                         {item.time}
                       </span>
-                      <span className="text-sm font-extrabold text-slate-900">{item.title}</span>
+                      <span className="text-sm font-bold text-slate-800">{item.title}</span>
                       {isNow && (
-                        <span className="ml-auto rounded-full bg-sky-600 px-2.5 py-0.5 text-[10px] font-black text-white">
+                        <span className="ml-auto rounded-full bg-rose-500 px-2.5 py-0.5 text-[10px] font-extrabold text-white">
                           NOW
                         </span>
                       )}
                     </div>
-                    <p className="mt-2 text-xs font-medium text-slate-700">{item.need}</p>
+                    <p className="mt-2 text-xs font-medium text-slate-600">{item.need}</p>
                   </div>
                 );
               })}
@@ -313,12 +328,12 @@ export default function MaintainerView() {
         {/* TAB 3: REMINDERS & DAILY LOG */}
         {subTab === 'reminders' && (
           <div className="mt-8 space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-sky-900 bg-sky-50 p-5 shadow-[5px_5px_0px_0px_#38bdf8]">
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white bg-gradient-to-r from-sky-50 to-cyan-50 p-5 shadow-lg shadow-sky-100/70">
               <div className="flex items-center gap-3">
-                <Droplets className="h-8 w-8 text-sky-600" />
+                <Droplets className="h-8 w-8 text-sky-500" />
                 <div>
-                  <p className="text-base font-extrabold text-slate-900">Today&apos;s Water Intake</p>
-                  <p className="text-xs font-bold text-sky-700">
+                  <p className="text-base font-extrabold text-slate-800">Today&apos;s Water Intake</p>
+                  <p className="text-xs font-semibold text-sky-600">
                     {waterGlasses} / {metrics.targetGlasses} glasses ({(waterGlasses * 0.25).toFixed(2)} L)
                   </p>
                 </div>
@@ -326,13 +341,13 @@ export default function MaintainerView() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => updateWater(waterGlasses - 1)}
-                  className="rounded-xl border-2 border-sky-900 bg-white px-4 py-2 text-sm font-black text-slate-900 shadow-[3px_3px_0px_0px_#0c4a6e] active:translate-y-[2px]"
+                  className="rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-sky-50"
                 >
                   -
                 </button>
                 <button
                   onClick={() => updateWater(waterGlasses + 1)}
-                  className="rounded-xl border-2 border-sky-900 bg-sky-500 px-5 py-2 text-sm font-black text-white shadow-[3px_3px_0px_0px_#0c4a6e] active:translate-y-[2px]"
+                  className="rounded-2xl bg-gradient-to-r from-sky-500 to-blue-500 px-5 py-2 text-sm font-bold text-white shadow-md shadow-sky-200/80 hover:brightness-105"
                 >
                   + 1 Glass
                 </button>
@@ -341,14 +356,14 @@ export default function MaintainerView() {
 
             <div>
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   Live Automatic Reminders
                 </h3>
                 <button
                   onClick={() =>
                     triggerNotification('FitLife Maintainer', 'Reminders are working! Stay hydrated & keep good posture.')
                   }
-                  className="rounded-lg border-2 border-sky-900 bg-sky-100 px-3 py-1 text-xs font-extrabold text-sky-900 hover:bg-sky-200"
+                  className="rounded-full bg-sky-100 px-3.5 py-1 text-xs font-bold text-sky-700 hover:bg-sky-200"
                 >
                   Test Alert Now
                 </button>
@@ -362,14 +377,14 @@ export default function MaintainerView() {
                   <button
                     key={r.key}
                     onClick={() => enableReminders(r.key)}
-                    className={`rounded-2xl border-2 border-sky-900 p-4 text-left transition ${
+                    className={`rounded-3xl border p-4 text-left transition ${
                       r.active
-                        ? 'bg-sky-500 text-white shadow-[4px_4px_0px_0px_#0c4a6e]'
-                        : 'bg-white text-slate-800 shadow-[4px_4px_0px_0px_#bae6fd] hover:bg-sky-50'
+                        ? 'border-sky-300 bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-lg shadow-sky-200/70'
+                        : 'border-white bg-white/85 text-slate-700 shadow-md shadow-sky-100/50 hover:bg-sky-50'
                     }`}
                   >
-                    <p className="text-sm font-extrabold">{r.label}</p>
-                    <p className="mt-1 text-xs font-semibold opacity-90">
+                    <p className="text-sm font-bold">{r.label}</p>
+                    <p className="mt-1 text-xs font-medium opacity-85">
                       {r.active ? 'ON — Active' : 'OFF — Click to Enable'}
                     </p>
                   </button>
@@ -378,7 +393,7 @@ export default function MaintainerView() {
             </div>
 
             <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Daily Full-Body Checklist
               </h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -393,13 +408,13 @@ export default function MaintainerView() {
                   <button
                     key={item}
                     onClick={() => toggleCheck(item)}
-                    className={`flex items-center gap-3 rounded-2xl border-2 border-sky-900 p-3.5 text-left text-xs font-extrabold transition ${
+                    className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left text-xs font-bold transition ${
                       checks[item]
-                        ? 'bg-sky-200 text-sky-950 shadow-[4px_4px_0px_0px_#0c4a6e]'
-                        : 'bg-white text-slate-700 shadow-[3px_3px_0px_0px_#bae6fd] hover:bg-sky-50'
+                        ? 'border-sky-300 bg-sky-100/80 text-sky-900 shadow-md shadow-sky-100'
+                        : 'border-white bg-white/85 text-slate-600 shadow-sm hover:bg-sky-50'
                     }`}
                   >
-                    <CheckCircle2 className={`h-5 w-5 ${checks[item] ? 'text-sky-700' : 'text-slate-300'}`} />
+                    <CheckCircle2 className={`h-5 w-5 ${checks[item] ? 'text-sky-600' : 'text-slate-300'}`} />
                     {item}
                   </button>
                 ))}
