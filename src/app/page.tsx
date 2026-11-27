@@ -12,6 +12,7 @@ import {
   Home,
   Info,
   ArrowRight,
+  ArrowLeft,
   Zap,
   Users,
   Activity,
@@ -40,14 +41,17 @@ import ExerciseAnimator from '@/components/ExerciseAnimator';
 import MaintainerView from '@/components/MaintainerView';
 
 type NavTab = 'home' | 'maintainer' | 'exercises' | 'about';
+type ExerciseStep = 1 | 2 | 3;
 
 export default function HomePage() {
   const [activeNav, setActiveNav] = useState<NavTab>('home');
+  const [exerciseStep, setExerciseStep] = useState<ExerciseStep>(1);
+
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
 
-  // Filters
+  // Wizard Filters
   const [search, setSearch] = useState('');
   const [selectedAge, setSelectedAge] = useState<string>('18-39');
   const [selectedGender, setSelectedGender] = useState<string>('All');
@@ -80,6 +84,7 @@ export default function HomePage() {
 
   const activeBodyGroup = BODY_PART_CATEGORIES.find((b) => b.id === selectedBodyPart);
   const activeGoalObj = TARGET_GOALS.find((g) => g.id === selectedGoal);
+  const activeTimeObj = TIME_OF_DAY_OPTIONS.find((t) => t.id === selectedTime);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -123,6 +128,11 @@ export default function HomePage() {
 
   const visibleExercises = filtered.slice(0, visibleCount);
 
+  const openExercisesWizard = () => {
+    setActiveNav('exercises');
+    setExerciseStep(1);
+  };
+
   const resetAllFilters = () => {
     setSearch('');
     setSelectedAge('all');
@@ -132,6 +142,7 @@ export default function HomePage() {
     setSelectedGoal('all');
     setSelectedTime('all');
     setVisibleCount(24);
+    setExerciseStep(1);
   };
 
   const jumpToAge = (ageId: string) => {
@@ -141,6 +152,7 @@ export default function HomePage() {
     setSelectedMuscle('all');
     setVisibleCount(24);
     setActiveNav('exercises');
+    setExerciseStep(1);
   };
 
   return (
@@ -188,7 +200,13 @@ export default function HomePage() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveNav(item.id as NavTab)}
+                  onClick={() => {
+                    if (item.id === 'exercises') {
+                      openExercisesWizard();
+                    } else {
+                      setActiveNav(item.id as NavTab);
+                    }
+                  }}
                   className={`flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-xs font-extrabold transition-all duration-200 ${
                     isActive
                       ? 'bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 text-white shadow-[4px_4px_0px_0px_#bae6fd]'
@@ -231,7 +249,7 @@ export default function HomePage() {
 
                 <div className="mt-8 flex flex-wrap gap-3.5">
                   <button
-                    onClick={() => setActiveNav('exercises')}
+                    onClick={openExercisesWizard}
                     className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 px-6 py-3.5 text-sm font-extrabold text-white shadow-[5px_5px_0px_0px_#bae6fd] transition-all hover:-translate-y-0.5 hover:brightness-105"
                   >
                     Explore All Exercises <ArrowRight className="h-4 w-4" />
@@ -292,7 +310,7 @@ export default function HomePage() {
                 </h3>
               </div>
               <button
-                onClick={() => setActiveNav('exercises')}
+                onClick={openExercisesWizard}
                 className="text-xs font-extrabold text-indigo-600 hover:underline"
               >
                 View full library →
@@ -368,7 +386,7 @@ export default function HomePage() {
           {/* Smooth Feature Bento Cards */}
           <section className="grid gap-6 md:grid-cols-3">
             <div
-              onClick={() => setActiveNav('exercises')}
+              onClick={openExercisesWizard}
               className="group cursor-pointer rounded-3xl border border-white bg-white/85 p-6 shadow-[6px_6px_0px_0px_#bae6fd] backdrop-blur transition-all hover:-translate-y-1"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 text-white shadow-md shadow-sky-200">
@@ -448,299 +466,391 @@ export default function HomePage() {
       {activeNav === 'maintainer' && <MaintainerView />}
 
       {/* =========================================================
-          PAGE 3: ALL EXERCISES (BODY PARTS, A-Z MUSCLES, GOALS, TIME)
+          PAGE 3: ALL EXERCISES — STEP-BY-STEP WIZARD (1 -> 2 -> 3)
          ========================================================= */}
       {activeNav === 'exercises' && (
         <section className="mx-auto max-w-6xl px-4 py-10">
-          <div className="space-y-5 rounded-3xl border border-white bg-white/90 p-6 shadow-[8px_8px_0px_0px_#bae6fd] backdrop-blur-xl">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h2 className="text-3xl font-black text-slate-900">
-                  All{' '}
-                  <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">
-                    Exercises
-                  </span>
+          {/* Step Indicator Bar */}
+          <div className="mb-8 flex flex-wrap items-center justify-center gap-3">
+            {[
+              { step: 1 as ExerciseStep, label: '1. Body Part' },
+              { step: 2 as ExerciseStep, label: '2. Target & Time' },
+              { step: 3 as ExerciseStep, label: '3. Your Exercises' },
+            ].map((s) => (
+              <button
+                key={s.step}
+                onClick={() => setExerciseStep(s.step)}
+                className={`rounded-2xl px-5 py-2.5 text-xs font-black transition-all ${
+                  exerciseStep === s.step
+                    ? 'bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 text-white shadow-[4px_4px_0px_0px_#bae6fd]'
+                    : exerciseStep > s.step
+                    ? 'bg-sky-100 text-sky-800 hover:bg-sky-200'
+                    : 'bg-white/75 text-slate-400 border border-white'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* STEP 1: CHOOSE BODY PART (+ A-Z MUSCLES) */}
+          {exerciseStep === 1 && (
+            <div className="mx-auto max-w-4xl rounded-[2rem] border border-white bg-white/90 p-8 shadow-[10px_10px_0px_0px_#bae6fd] backdrop-blur-xl">
+              <div className="text-center">
+                <span className="inline-block rounded-full bg-sky-100 px-4 py-1 text-xs font-extrabold text-sky-700">
+                  Step 1 of 2
+                </span>
+                <h2 className="mt-3 text-3xl font-black text-slate-900">
+                  Which Body Part Do You Want to Train?
                 </h2>
-                <p className="mt-1 text-sm font-medium text-slate-600">
-                  Filter by Body Part, A–Z Muscle, Target Goal, Time of Day, and Age.
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Select a body part below—you can also narrow down to a specific A–Z muscle.
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={resetAllFilters}
-                  className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-extrabold text-rose-600 hover:bg-rose-100"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" /> Reset Filters
-                </button>
-                {(['Beginner', 'Intermediate', 'Advanced'] as LevelKey[]).map((lvl) => (
-                  <button
-                    key={lvl}
-                    onClick={() => setGuideLevel(lvl)}
-                    className="flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 text-xs font-extrabold text-sky-800 hover:bg-sky-100"
-                  >
-                    <ShieldCheck className="h-3.5 w-3.5 text-sky-500" /> {lvl}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Global Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-4 top-3.5 h-5 w-5 text-sky-500" />
-              <input
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setVisibleCount(24);
-                }}
-                placeholder="Search any exercise or muscle (e.g., Hamstrings, Bench Press, Calves, Squat)..."
-                className="w-full rounded-2xl border border-sky-200 bg-white py-3.5 pl-12 pr-4 text-sm font-semibold text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
-              />
-            </div>
-
-            {/* 1. BODY PARTS SELECTOR */}
-            <div>
-              <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-sky-700">
-                1. Choose Body Part
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {BODY_PART_CATEGORIES.map((bp) => (
-                  <button
-                    key={bp.id}
-                    onClick={() => {
-                      setSelectedBodyPart(bp.id);
-                      setSelectedMuscle('all');
-                      setVisibleCount(24);
-                    }}
-                    className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-extrabold transition-all ${
-                      selectedBodyPart === bp.id
-                        ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-[3px_3px_0px_0px_#bae6fd]'
-                        : 'border border-sky-100 bg-sky-50/50 text-slate-700 hover:bg-sky-100'
-                    }`}
-                  >
-                    <span>{bp.emoji}</span> {bp.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 2. A-Z SPECIFIC MUSCLES FOR CHOSEN BODY PART */}
-            {activeBodyGroup && activeBodyGroup.muscles.length > 0 && (
-              <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-3.5">
-                <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-indigo-700">
-                  {activeBodyGroup.label} — A to Z Muscles
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedMuscle('all');
-                      setVisibleCount(24);
-                    }}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${
-                      selectedMuscle === 'all'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-white text-indigo-800 hover:bg-indigo-100'
-                    }`}
-                  >
-                    All {activeBodyGroup.label}
-                  </button>
-                  {activeBodyGroup.muscles.map((m) => (
+              <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                {BODY_PART_CATEGORIES.map((bp) => {
+                  const isSelected = selectedBodyPart === bp.id;
+                  return (
                     <button
-                      key={m}
+                      key={bp.id}
                       onClick={() => {
-                        setSelectedMuscle(m);
-                        setVisibleCount(24);
+                        setSelectedBodyPart(bp.id);
+                        setSelectedMuscle('all');
+                        if (bp.muscles.length <= 1) {
+                          setExerciseStep(2);
+                        }
                       }}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${
-                        selectedMuscle === m
-                          ? 'bg-indigo-600 text-white shadow-sm'
+                      className={`group flex flex-col items-center rounded-3xl border p-6 text-center transition-all duration-200 hover:-translate-y-1 ${
+                        isSelected
+                          ? 'border-sky-400 bg-gradient-to-br from-sky-500 to-indigo-500 text-white shadow-[6px_6px_0px_0px_#bae6fd]'
+                          : 'border-sky-100 bg-sky-50/60 text-slate-800 shadow-[4px_4px_0px_0px_#e0f2fe] hover:bg-sky-100/70'
+                      }`}
+                    >
+                      <span className="text-3xl">{bp.emoji}</span>
+                      <span className="mt-3 text-sm font-black">{bp.label}</span>
+                      {bp.muscles.length > 1 && (
+                        <span
+                          className={`mt-1 text-[10px] font-bold ${
+                            isSelected ? 'text-sky-100' : 'text-sky-600'
+                          }`}
+                        >
+                          {bp.muscles.length} A–Z muscles
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* A-Z Specific Muscle Sub-Picker (if body part has multiple muscles) */}
+              {activeBodyGroup && activeBodyGroup.muscles.length > 1 && (
+                <div className="mt-8 rounded-3xl border border-indigo-100 bg-indigo-50/60 p-5">
+                  <p className="text-xs font-black uppercase tracking-wider text-indigo-700">
+                    Optional: Pick a Specific {activeBodyGroup.label} Muscle (A–Z)
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedMuscle('all');
+                        setExerciseStep(2);
+                      }}
+                      className={`rounded-xl px-4 py-2 text-xs font-extrabold transition ${
+                        selectedMuscle === 'all'
+                          ? 'bg-indigo-600 text-white'
                           : 'bg-white text-indigo-800 hover:bg-indigo-100'
                       }`}
                     >
-                      {m}
+                      All {activeBodyGroup.label} →
                     </button>
-                  ))}
+                    {activeBodyGroup.muscles.map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          setSelectedMuscle(m);
+                          setExerciseStep(2);
+                        }}
+                        className={`rounded-xl px-4 py-2 text-xs font-extrabold transition ${
+                          selectedMuscle === m
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white text-indigo-800 hover:bg-indigo-100'
+                        }`}
+                      >
+                        {m} →
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* 3. TARGET GOAL & 4. TIME OF DAY */}
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div>
-                <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-rose-600">
-                  2. Target Goal (Bulky, Cuts, Strength...)
+              <div className="mt-8 flex justify-end">
+                <button
+                  onClick={() => setExerciseStep(2)}
+                  className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 px-7 py-3.5 text-sm font-extrabold text-white shadow-[5px_5px_0px_0px_#bae6fd] transition hover:-translate-y-0.5"
+                >
+                  Next: Choose Target Goal <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: CHOOSE TARGET GOAL & TIME OF DAY */}
+          {exerciseStep === 2 && (
+            <div className="mx-auto max-w-4xl rounded-[2rem] border border-white bg-white/90 p-8 shadow-[10px_10px_0px_0px_#fbcfe8] backdrop-blur-xl">
+              <div className="text-center">
+                <span className="inline-block rounded-full bg-pink-100 px-4 py-1 text-xs font-extrabold text-rose-700">
+                  Step 2 of 2 • {activeBodyGroup?.emoji} {activeBodyGroup?.label}
+                  {selectedMuscle !== 'all' ? ` (${selectedMuscle})` : ''}
+                </span>
+                <h2 className="mt-3 text-3xl font-black text-slate-900">
+                  Choose Your Target Goal &amp; Time of Day
+                </h2>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Pick how you want to train and when you are working out today.
                 </p>
-                <div className="flex flex-wrap gap-2">
+              </div>
+
+              {/* Target Goals */}
+              <div className="mt-8">
+                <p className="mb-3 text-xs font-black uppercase tracking-wider text-rose-600">
+                  Target Goal
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
                   {TARGET_GOALS.map((g) => (
                     <button
                       key={g.id}
-                      onClick={() => {
-                        setSelectedGoal(g.id);
-                        setVisibleCount(24);
-                      }}
-                      className={`rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
+                      onClick={() => setSelectedGoal(g.id)}
+                      className={`rounded-2xl border p-4 text-left transition-all ${
                         selectedGoal === g.id
-                          ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-[3px_3px_0px_0px_#fbcfe8]'
-                          : 'border border-pink-100 bg-pink-50/50 text-rose-800 hover:bg-pink-100'
+                          ? 'border-rose-400 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-[5px_5px_0px_0px_#fbcfe8]'
+                          : 'border-pink-100 bg-pink-50/50 text-slate-800 hover:bg-pink-100/70'
                       }`}
                     >
-                      {g.label}
+                      <p className="text-sm font-extrabold">{g.label}</p>
+                      {g.tip && (
+                        <p
+                          className={`mt-1 text-[11px] font-medium ${
+                            selectedGoal === g.id ? 'text-pink-100' : 'text-slate-500'
+                          }`}
+                        >
+                          {g.tip}
+                        </p>
+                      )}
                     </button>
                   ))}
                 </div>
-                {activeGoalObj && activeGoalObj.tip && (
-                  <p className="mt-2 text-xs font-bold text-rose-600">
-                    Recommended Tempo: {activeGoalObj.tip}
-                  </p>
-                )}
               </div>
 
-              <div>
-                <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-teal-700">
-                  3. Time of Day (Morning, Afternoon, Evening, Night)
+              {/* Time of Day */}
+              <div className="mt-8">
+                <p className="mb-3 text-xs font-black uppercase tracking-wider text-teal-700">
+                  Time of Day
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid gap-3 sm:grid-cols-5">
                   {TIME_OF_DAY_OPTIONS.map((t) => (
                     <button
                       key={t.id}
-                      onClick={() => {
-                        setSelectedTime(t.id);
-                        setVisibleCount(24);
-                      }}
-                      className={`flex items-center gap-1 rounded-xl px-3.5 py-1.5 text-xs font-extrabold transition ${
+                      onClick={() => setSelectedTime(t.id)}
+                      className={`flex flex-col items-center rounded-2xl border p-3.5 text-center transition-all ${
                         selectedTime === t.id
-                          ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-[3px_3px_0px_0px_#99f6e4]'
-                          : 'border border-teal-100 bg-teal-50/50 text-teal-900 hover:bg-teal-100'
+                          ? 'border-teal-400 bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-[4px_4px_0px_0px_#99f6e4]'
+                          : 'border-teal-100 bg-teal-50/50 text-slate-800 hover:bg-teal-100/70'
                       }`}
                     >
-                      <span>{t.emoji}</span> {t.label}
+                      <span className="text-xl">{t.emoji}</span>
+                      <span className="mt-1 text-xs font-extrabold">{t.label}</span>
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* 4. AGE & GENDER */}
-            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-sky-100 pt-4">
-              <div className="flex flex-wrap gap-1.5">
-                {AGE_GROUPS.map((g) => (
-                  <button
-                    key={g.id}
-                    onClick={() => {
-                      setSearch('');
-                      setSelectedAge(g.id);
-                      setVisibleCount(24);
-                    }}
-                    className={`rounded-lg px-3 py-1.5 text-[11px] font-extrabold transition-all ${
-                      selectedAge === g.id && !search
-                        ? 'bg-sky-600 text-white'
-                        : 'border border-sky-100 bg-white text-slate-600 hover:bg-sky-50'
-                    }`}
-                  >
-                    {g.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex gap-1 rounded-xl border border-sky-100 bg-sky-50/70 p-1">
-                {['All', 'Male', 'Female'].map((gen) => (
-                  <button
-                    key={gen}
-                    onClick={() => setSelectedGender(gen)}
-                    className={`rounded-lg px-3 py-1 text-xs font-extrabold transition ${
-                      selectedGender === gen
-                        ? 'bg-sky-500 text-white shadow-sm'
-                        : 'text-slate-600 hover:bg-white'
-                    }`}
-                  >
-                    {gen}
-                  </button>
-                ))}
+              {/* Back & Next Actions */}
+              <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
+                <button
+                  onClick={() => setExerciseStep(1)}
+                  className="flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-xs font-extrabold text-sky-800 hover:bg-sky-100"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Back to Body Parts
+                </button>
+                <button
+                  onClick={() => {
+                    setVisibleCount(24);
+                    setExerciseStep(3);
+                  }}
+                  className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 px-8 py-3.5 text-sm font-extrabold text-white shadow-[5px_5px_0px_0px_#bae6fd] transition hover:-translate-y-0.5"
+                >
+                  Show My Exercises <ArrowRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Exercise Grid */}
-          {loading ? (
-            <p className="mt-12 text-center text-sm font-bold text-sky-700">
-              Loading your workout library...
-            </p>
-          ) : dbError ? (
-            <p className="mt-12 text-center text-sm font-bold text-rose-600">
-              Supabase Error: {dbError}
-            </p>
-          ) : filtered.length === 0 ? (
-            <div className="mt-12 text-center">
-              <p className="text-sm font-bold text-slate-500">
-                No exercises matched this exact filter combination.
-              </p>
-              <button
-                onClick={resetAllFilters}
-                className="mt-3 rounded-xl bg-sky-500 px-4 py-2 text-xs font-extrabold text-white hover:bg-sky-600"
-              >
-                Reset All Filters
-              </button>
-            </div>
-          ) : (
-            <>
-              <p className="mt-6 text-xs font-extrabold uppercase tracking-wider text-sky-800">
-                Showing {visibleExercises.length} of {filtered.length} matching workouts — click any card for live animation
-              </p>
-              <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {visibleExercises.map((ex) => (
-                  <div
-                    key={ex.id}
-                    onClick={() => setActiveExercise(ex)}
-                    className="group cursor-pointer overflow-hidden rounded-3xl border border-white bg-white/90 shadow-[6px_6px_0px_0px_#bae6fd] backdrop-blur transition-all duration-200 hover:-translate-y-1.5 hover:shadow-[8px_8px_0px_0px_#7dd3fc]"
-                  >
-                    <div className="relative h-48 w-full overflow-hidden bg-sky-50">
-                      {ex.media_url && (
-                        <img
-                          src={ex.media_url}
-                          alt={ex.name}
-                          loading="lazy"
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                        />
-                      )}
-                      <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full bg-white/95 px-3 py-1 text-[11px] font-extrabold text-sky-700 shadow-sm">
-                        <PlayCircle className="h-3.5 w-3.5 text-sky-500" /> Live Animation
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
-                        <span className="rounded-lg bg-sky-100 px-2.5 py-0.5 text-sky-700">
-                          {ex.level}
-                        </span>
-                        <span className="rounded-lg bg-indigo-50 px-2.5 py-0.5 text-indigo-700">
-                          {ex.muscle_group}
-                        </span>
-                        <span className="rounded-lg bg-pink-50 px-2.5 py-0.5 text-rose-600">
-                          {ex.equipment}
-                        </span>
-                      </div>
-                      <h3 className="mt-2.5 text-lg font-extrabold text-slate-900 group-hover:text-sky-600">
-                        {ex.name}
-                      </h3>
-                      <p className="mt-1 text-xs font-medium text-slate-500">
-                        Ages: {ex.age_groups.join(', ')} • {ex.sets_reps}
-                      </p>
-                    </div>
+          {/* STEP 3: SHOW MATCHING EXERCISES */}
+          {exerciseStep === 3 && (
+            <div>
+              {/* Compact Summary & Search Header */}
+              <div className="rounded-3xl border border-white bg-white/90 p-5 shadow-[8px_8px_0px_0px_#bae6fd] backdrop-blur-xl">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => setExerciseStep(2)}
+                      className="flex items-center gap-1 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-extrabold text-sky-800 hover:bg-sky-100"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" /> Back
+                    </button>
+                    <span className="rounded-xl bg-sky-100 px-3 py-1.5 text-xs font-extrabold text-sky-800">
+                      {activeBodyGroup?.emoji} {activeBodyGroup?.label}
+                      {selectedMuscle !== 'all' ? `: ${selectedMuscle}` : ''}
+                    </span>
+                    <span className="rounded-xl bg-pink-100 px-3 py-1.5 text-xs font-extrabold text-rose-700">
+                      {activeGoalObj?.label}
+                    </span>
+                    <span className="rounded-xl bg-teal-100 px-3 py-1.5 text-xs font-extrabold text-teal-800">
+                      {activeTimeObj?.emoji} {activeTimeObj?.label}
+                    </span>
                   </div>
-                ))}
-              </div>
 
-              {visibleCount < filtered.length && (
-                <div className="mt-10 text-center">
                   <button
-                    onClick={() => setVisibleCount((c) => c + 24)}
-                    className="rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 px-8 py-3.5 text-sm font-extrabold text-white shadow-[5px_5px_0px_0px_#bae6fd] transition hover:-translate-y-0.5"
+                    onClick={resetAllFilters}
+                    className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-extrabold text-rose-600 hover:bg-rose-100"
                   >
-                    Load More Workouts ({filtered.length - visibleCount} remaining)
+                    <RotateCcw className="h-3.5 w-3.5" /> Start Over
                   </button>
                 </div>
+
+                {activeGoalObj?.tip && (
+                  <p className="mt-3 text-xs font-bold text-rose-600">
+                    Recommended Tempo: {activeGoalObj.tip}
+                  </p>
+                )}
+
+                {/* Search & Age/Gender quick bar */}
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <div className="relative flex-1 min-w-[240px]">
+                    <Search className="absolute left-3.5 top-3 h-4 w-4 text-sky-500" />
+                    <input
+                      value={search}
+                      onChange={(e) => {
+                        setSearch(e.target.value);
+                        setVisibleCount(24);
+                      }}
+                      placeholder="Search inside these exercises..."
+                      className="w-full rounded-xl border border-sky-200 bg-white py-2.5 pl-10 pr-4 text-xs font-semibold text-slate-800 outline-none focus:border-sky-400"
+                    />
+                  </div>
+
+                  <select
+                    value={selectedAge}
+                    onChange={(e) => setSelectedAge(e.target.value)}
+                    className="rounded-xl border border-sky-200 bg-sky-50/70 px-3 py-2.5 text-xs font-extrabold text-sky-900 outline-none"
+                  >
+                    {AGE_GROUPS.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="flex gap-1 rounded-xl border border-sky-100 bg-sky-50/70 p-1">
+                    {['All', 'Male', 'Female'].map((gen) => (
+                      <button
+                        key={gen}
+                        onClick={() => setSelectedGender(gen)}
+                        className={`rounded-lg px-2.5 py-1 text-xs font-extrabold transition ${
+                          selectedGender === gen
+                            ? 'bg-sky-500 text-white shadow-sm'
+                            : 'text-slate-600 hover:bg-white'
+                        }`}
+                      >
+                        {gen}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Exercise Grid */}
+              {loading ? (
+                <p className="mt-12 text-center text-sm font-bold text-sky-700">
+                  Loading your workout library...
+                </p>
+              ) : dbError ? (
+                <p className="mt-12 text-center text-sm font-bold text-rose-600">
+                  Supabase Error: {dbError}
+                </p>
+              ) : filtered.length === 0 ? (
+                <div className="mt-12 text-center">
+                  <p className="text-sm font-bold text-slate-600">
+                    No exercises matched this exact combination.
+                  </p>
+                  <button
+                    onClick={() => setExerciseStep(2)}
+                    className="mt-3 rounded-xl bg-sky-500 px-5 py-2.5 text-xs font-extrabold text-white hover:bg-sky-600"
+                  >
+                    Change Target Goal or Time
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="mt-6 text-xs font-extrabold uppercase tracking-wider text-sky-800">
+                    Showing {visibleExercises.length} of {filtered.length} matching workouts — click any card for live animation
+                  </p>
+                  <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {visibleExercises.map((ex) => (
+                      <div
+                        key={ex.id}
+                        onClick={() => setActiveExercise(ex)}
+                        className="group cursor-pointer overflow-hidden rounded-3xl border border-white bg-white/90 shadow-[6px_6px_0px_0px_#bae6fd] backdrop-blur transition-all duration-200 hover:-translate-y-1.5 hover:shadow-[8px_8px_0px_0px_#7dd3fc]"
+                      >
+                        <div className="relative h-48 w-full overflow-hidden bg-sky-50">
+                          {ex.media_url && (
+                            <img
+                              src={ex.media_url}
+                              alt={ex.name}
+                              loading="lazy"
+                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                            />
+                          )}
+                          <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full bg-white/95 px-3 py-1 text-[11px] font-extrabold text-sky-700 shadow-sm">
+                            <PlayCircle className="h-3.5 w-3.5 text-sky-500" /> Live Animation
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
+                            <span className="rounded-lg bg-sky-100 px-2.5 py-0.5 text-sky-700">
+                              {ex.level}
+                            </span>
+                            <span className="rounded-lg bg-indigo-50 px-2.5 py-0.5 text-indigo-700">
+                              {ex.muscle_group}
+                            </span>
+                            <span className="rounded-lg bg-pink-50 px-2.5 py-0.5 text-rose-600">
+                              {ex.equipment}
+                            </span>
+                          </div>
+                          <h3 className="mt-2.5 text-lg font-extrabold text-slate-900 group-hover:text-sky-600">
+                            {ex.name}
+                          </h3>
+                          <p className="mt-1 text-xs font-medium text-slate-500">
+                            Ages: {ex.age_groups.join(', ')} • {ex.sets_reps}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {visibleCount < filtered.length && (
+                    <div className="mt-10 text-center">
+                      <button
+                        onClick={() => setVisibleCount((c) => c + 24)}
+                        className="rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 px-8 py-3.5 text-sm font-extrabold text-white shadow-[5px_5px_0px_0px_#bae6fd] transition hover:-translate-y-0.5"
+                      >
+                        Load More Workouts ({filtered.length - visibleCount} remaining)
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
-            </>
+            </div>
           )}
         </section>
       )}
