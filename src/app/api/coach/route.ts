@@ -8,7 +8,7 @@ export async function POST(req: Request) {
 
     if (!apiKey) {
       return NextResponse.json(
-        { reply: 'Please add your GEMINI_API_KEY in .env.local to activate 🌸 AI Coach.' },
+        { reply: 'Please add your GEMINI_API_KEY in Vercel Environment Variables to activate 🌸 AI Coach.' },
         { status: 500 }
       );
     }
@@ -43,10 +43,13 @@ Site database matches (mention if relevant): ${JSON.stringify(matchedExercises |
     ];
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemPrompt }] },
           contents,
@@ -55,14 +58,21 @@ Site database matches (mention if relevant): ${JSON.stringify(matchedExercises |
     );
 
     const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json({
+        reply: `Gemini API Error (${res.status}): ${data?.error?.message || 'Unknown error'}`,
+      });
+    }
+
     const reply =
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
       'Sorry, I could not generate a response right now. Try again!';
 
     return NextResponse.json({ reply });
-  } catch {
+  } catch (err) {
     return NextResponse.json(
-      { reply: 'Connection error. Check your GEMINI_API_KEY and try again.' },
+      { reply: `Server Error: ${err instanceof Error ? err.message : 'Check your GEMINI_API_KEY and try again.'}` },
       { status: 500 }
     );
   }
