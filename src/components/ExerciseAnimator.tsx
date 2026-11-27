@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Play, Pause, Gauge, RotateCcw, Youtube } from 'lucide-react';
+import { Play, Pause, Gauge, RotateCcw, Video } from 'lucide-react';
 
 interface Props {
   name: string;
@@ -139,7 +139,7 @@ export default function ExerciseAnimator({ name, frame1, frame2 }: Props) {
           rel="noopener noreferrer"
           className="flex items-center gap-1 rounded-lg bg-rose-500/15 px-2.5 py-1.5 font-bold text-rose-400 hover:bg-rose-500/25"
         >
-          <Youtube className="h-3.5 w-3.5" /> Live Video
+          <Video className="h-3.5 w-3.5" /> Live Video
         </a>
       </div>
     </div>
