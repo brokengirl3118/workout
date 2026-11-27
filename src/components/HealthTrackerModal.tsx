@@ -48,11 +48,11 @@ export default function HealthTrackerModal({ open, onClose }: Props) {
   const [stretchReminder, setStretchReminder] = useState(false);
   const [alertBanner, setAlertBanner] = useState<string | null>(null);
 
-  const currentHour = new Date().getHours();
+  const [currentHour, setCurrentHour] = useState<number | null>(null);
 
-  // Load saved daily progress
+  // Load saved daily progress & current hour on client
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    setCurrentHour(new Date().getHours());
     const savedWater = localStorage.getItem('fitlife_water');
     const savedChecks = localStorage.getItem('fitlife_checks');
     if (savedWater) setWaterGlasses(Number(savedWater));
