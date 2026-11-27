@@ -1,21 +1,40 @@
 import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
 
+// 1. Parse .env.local safely (handles Windows CRLF and optional quotes)
+if (!fs.existsSync('.env.local')) {
+  console.error('❌ .env.local file not found in project root.');
+  process.exit(1);
+}
+
 const envFile = fs.readFileSync('.env.local', 'utf8');
 const env = Object.fromEntries(
   envFile
-    .split('\n')
-    .filter((line) => line.includes('=') && !line.startsWith('#'))
+    .split(/\r?\n/)
+    .filter((line) => line.includes('=') && !line.trim().startsWith('#'))
     .map((line) => {
       const idx = line.indexOf('=');
-      return [line.slice(0, idx).trim(), line.slice(idx + 1).trim()];
+      const key = line.slice(0, idx).trim();
+      const val = line
+        .slice(idx + 1)
+        .trim()
+        .replace(/^["']|["']$/g, '');
+      return [key, val];
     })
 );
 
-const supabase = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL,
-  env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !serviceKey) {
+  console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local');
+  process.exit(1);
+}
+
+console.log(`🔗 Connecting to: ${supabaseUrl}`);
+const supabase = createClient(supabaseUrl, serviceKey, {
+  auth: { persistSession: false },
+});
 
 const toSlug = (str) =>
   str
@@ -27,6 +46,7 @@ function buildFullDetails(name, muscle, category, equipment, level) {
   const m = muscle || 'Full Body';
   const cat = (category || 'Strength').toLowerCase();
   const eq = equipment || 'Bodyweight';
+  const lvl = (level || 'Intermediate').toLowerCase();
 
   const long_description = `${name} is a targeted ${cat} movement designed primarily to train your ${m} using ${eq.toLowerCase()}. Performing ${name} with full range of motion and steady breathing recruits deep stabilizing fibers while reinforcing joint alignment and posture. Consistent practice builds neuromuscular control, improves functional movement quality for daily life, and progressively strengthens the ${m.toLowerCase()} without unnecessary strain when paired with proper warm-up and recovery.`;
 
@@ -37,35 +57,51 @@ function buildFullDetails(name, muscle, category, equipment, level) {
       ? 'Boosts heart health, calorie burn, and athletic stamina.'
       : cat.includes('stretch') || cat.includes('mobility')
       ? 'Relieves stiffness, increases flexibility, and speeds up muscle recovery.'
-      : `Builds lean muscle definition and progressive ${level.toLowerCase()}-level strength.`,
+      : `Builds lean muscle definition and progressive ${lvl}-level strength.`,
     `Enhances mind-muscle connection and core bracing throughout every rep.`,
   ];
 
-  const results_timeline = cat.includes('stretch') || cat.includes('mobility')
-    ? 'Days 1–7: Noticeable relief in stiffness & easier joint movement • Days 14–21: Improved flexibility & posture • Days 30–45: Lasting mobility & pain-free range of motion.'
-    : cat.includes('cardio') || cat.includes('plyo')
-    ? 'Days 7–14: Higher daily energy & better breathing endurance • Days 21–30: Visible fat-loss support & sharper stamina • Days 45–60: Noticeable athletic conditioning & leaner physique.'
-    : 'Days 7–14: Stronger mind-muscle connection & smoother form • Days 21–30: Measurable strength gains & firmer muscle tone • Days 45–60: Visible muscle definition, cuts, and size progress (with proper protein & sleep).';
+  const results_timeline =
+    cat.includes('stretch') || cat.includes('mobility')
+      ? 'Days 1–7: Noticeable relief in stiffness & easier joint movement • Days 14–21: Improved flexibility & posture • Days 30–45: Lasting mobility & pain-free range of motion.'
+      : cat.includes('cardio') || cat.includes('plyo')
+      ? 'Days 7–14: Higher daily energy & better breathing endurance • Days 21–30: Visible fat-loss support & sharper stamina • Days 45–60: Noticeable athletic conditioning & leaner physique.'
+      : 'Days 7–14: Stronger mind-muscle connection & smoother form • Days 21–30: Measurable strength gains & firmer muscle tone • Days 45–60: Visible muscle definition, cuts, and size progress (with proper protein & sleep).';
 
   return { long_description, benefits, results_timeline };
 }
 
-async function run() {
-  console.log('1) Fetching all currently saved exercises from Supabase...');
-  const [r1, r2] = await Promise.all([
-    supabase.from('exercises').select('*').range(0, 999),
-    supabase.from('exercises').select('*').range(1000, 1999),
-  ]);
+async function fetchAllExisting() {
+  const rows = [];
+  let from = 0;
+  const pageSize = 1000;
 
-  if (r1.error) {
-    console.error('Error fetching existing exercises:', r1.error.message);
-    return;
+  while (true) {
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('*')
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.error('❌ Error fetching existing exercises:', error.message);
+      process.exit(1);
+    }
+    if (!data || data.length === 0) break;
+    rows.push(...data);
+    if (data.length < pageSize) break;
+    from += pageSize;
   }
 
-  const existing = [...(r1.data || []), ...(r2.data || [])];
-  const existingSlugs = new Set(existing.map((e) => e.slug));
-  console.log(`Found ${existing.length} existing exercises. Adding full descriptions & timelines...`);
+  return rows;
+}
 
+async function run() {
+  console.log('1) Fetching all currently saved exercises...');
+  const existing = await fetchAllExisting();
+  const existingSlugs = new Set(existing.map((e) => e.slug));
+  console.log(`✅ Found ${existing.length} existing exercises.`);
+
+  // Enrich existing rows with full descriptions, benefits, and timelines
   const enrichedExisting = existing.map((ex) => {
     const details = buildFullDetails(
       ex.name,
@@ -80,15 +116,23 @@ async function run() {
     };
   });
 
+  console.log('2) Enriching existing exercises...');
   for (let i = 0; i < enrichedExisting.length; i += 100) {
     const batch = enrichedExisting.slice(i, i + 100);
-    const { error } = await supabase.from('exercises').upsert(batch, { onConflict: 'slug' });
-    if (error) console.error(`Enrich batch ${i} error:`, error.message);
-    else console.log(`Updated existing: ${Math.min(i + 100, enrichedExisting.length)} / ${enrichedExisting.length}`);
+    const { error } = await supabase
+      .from('exercises')
+      .upsert(batch, { onConflict: 'slug' });
+
+    if (error) {
+      console.error(`❌ Enrich batch ${i} failed:`, error.message);
+      process.exit(1);
+    }
+    console.log(
+      `   Updated existing: ${Math.min(i + 100, enrichedExisting.length)} / ${enrichedExisting.length}`
+    );
   }
 
-  console.log('2) Generating 1,050+ NEW unique exercises with full descriptions...');
-
+  console.log('3) Generating new unique exercises...');
   const muscleTemplates = [
     {
       muscle: 'Quadriceps',
@@ -248,16 +292,27 @@ async function run() {
     }
   }
 
-  console.log(`Prepared ${newExercises.length} brand-new unique exercises. Uploading to Supabase...`);
-
+  console.log(`4) Uploading ${newExercises.length} new exercises...`);
   for (let i = 0; i < newExercises.length; i += 100) {
     const batch = newExercises.slice(i, i + 100);
-    const { error } = await supabase.from('exercises').upsert(batch, { onConflict: 'slug' });
-    if (error) console.error(`New batch ${i} error:`, error.message);
-    else console.log(`Uploaded new: ${Math.min(i + 100, newExercises.length)} / ${newExercises.length}`);
+    const { error } = await supabase
+      .from('exercises')
+      .upsert(batch, { onConflict: 'slug' });
+
+    if (error) {
+      console.error(`❌ New batch ${i} failed:`, error.message);
+      process.exit(1);
+    }
+    console.log(
+      `   Uploaded new: ${Math.min(i + 100, newExercises.length)} / ${newExercises.length}`
+    );
   }
 
-  console.log('ALL DONE! Existing exercises enriched + 1,000+ new exercises added.');
+  const { count } = await supabase
+    .from('exercises')
+    .select('*', { count: 'exact', head: true });
+
+  console.log(`🎉 DONE! Verified total rows in public.exercises: ${count}`);
 }
 
 run();

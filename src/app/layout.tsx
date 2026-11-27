@@ -10,8 +10,8 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'FitLife 0–90 | Fitness & Health',
-  description: 'Guided workouts and daily body care for ages 0 to 90.',
+  title: 'flower',
+  description: 'FLOWER — Fitness, nutrition, and daily wellness.',
 };
 
 export default function RootLayout({
@@ -20,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={jakarta.className}>
-      <body className="bg-[#060609] text-slate-100 antialiased selection:bg-sky-500/30 selection:text-sky-200">
+    <html lang="en" className={jakarta.className} data-theme="dark">
+      <body className="antialiased selection:bg-sky-500/30">
         <ClickFlowerBurst />
         {children}
       </body>

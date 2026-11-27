@@ -13,8 +13,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Zap,
-  Users,
-  Activity,
   Droplets,
   Flame,
   Star,
@@ -32,6 +30,9 @@ import {
   Wind,
   Plus,
   Minus,
+  Moon,
+  Sun,
+  Utensils,
 } from 'lucide-react';
 import { supabase, Exercise } from '@/lib/supabase';
 import { AGE_GROUPS, LevelKey } from '@/lib/data';
@@ -51,6 +52,7 @@ import MaintainerView from '@/components/MaintainerView';
 import GuidedExercisePlayer from '@/components/GuidedExercisePlayer';
 import WellnessStudioHub, { InteractiveToolModal } from '@/components/WellnessStudioHub';
 import WelcomeSplash from '@/components/WelcomeSplash';
+import NutritionGainModal from '@/components/NutritionGainModal';
 
 type NavTab = 'home' | 'maintainer' | 'exercises' | 'tools' | 'about';
 type ExerciseStep = 1 | 2 | 3;
@@ -109,7 +111,11 @@ export default function HomePage() {
   const [quickTool, setQuickTool] = useState<WellnessTool | null>(null);
   const [xp, setXp] = useState<number>(0);
 
-  // New User-Favorite Home Features State
+  // Theme & Nutrition Guide State
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [nutritionOpen, setNutritionOpen] = useState(false);
+
+  // Daily Home Features State
   const [streak, setStreak] = useState<number>(1);
   const [mood, setMood] = useState<MoodKey | null>(null);
   const [waterGlasses, setWaterGlasses] = useState<number>(0);
@@ -136,8 +142,16 @@ export default function HomePage() {
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [guideLevel, setGuideLevel] = useState<LevelKey | null>(null);
 
-  // Load saved XP, Water, Favorites & Daily Streak safely on client
+  // Set Tab Title to 🌸 & Load Saved Preferences
   useEffect(() => {
+    document.title = '🌸';
+
+    const savedTheme = localStorage.getItem('flower_theme') as 'dark' | 'light' | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+
     const savedXp = localStorage.getItem('fitlife_xp');
     if (savedXp) setXp(Number(savedXp));
 
@@ -153,7 +167,6 @@ export default function HomePage() {
       }
     }
 
-    // Daily Streak Calculator
     const today = new Date().toISOString().slice(0, 10);
     const lastVisit = localStorage.getItem('fitlife_last_visit');
     const savedStreak = Number(localStorage.getItem('fitlife_streak') || '0');
@@ -175,7 +188,13 @@ export default function HomePage() {
     }
   }, []);
 
-  // Live Mini Calm-Breath Timer
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('flower_theme', next);
+    document.documentElement.setAttribute('data-theme', next);
+  };
+
   useEffect(() => {
     if (!breathOn) return;
     const t = setInterval(() => {
@@ -334,32 +353,19 @@ export default function HomePage() {
       : 'Exhale...';
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[#060609] text-slate-100">
+    <main className="relative min-h-screen overflow-x-hidden">
       <WelcomeSplash />
 
-      {/* Subtle Ambient Matte Glows */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-sky-500/10 blur-3xl" />
-        <div className="absolute right-0 top-1/3 h-96 w-96 rounded-full bg-pink-500/10 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
-      </div>
-
-      {/* STICKY MATTE NAVIGATION BAR */}
-      <nav className="sticky top-0 z-40 border-b border-white/10 bg-[#08080c]/90 backdrop-blur-xl">
+      {/* STICKY NAVIGATION BAR */}
+      <nav className="sticky top-0 z-40 border-b border-white/10 bg-[var(--bg-nav)] backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+          {/* Site Name: Flower Emoji Only */}
           <button
             onClick={() => setActiveNav('home')}
-            className="flex items-center gap-2.5 text-left transition hover:scale-[1.02]"
+            title="Home"
+            className="matte-pill flex h-10 w-10 items-center justify-center rounded-2xl text-2xl transition hover:scale-110"
           >
-            <div className="matte-pill flex h-9 w-9 items-center justify-center rounded-xl text-sky-400">
-              <Dumbbell className="h-4 w-4" />
-            </div>
-            <h1 className="text-lg font-extrabold tracking-tight text-white">
-              FitLife{' '}
-              <span className="bg-gradient-to-r from-sky-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">
-                0–90
-              </span>
-            </h1>
+            🌸
           </button>
 
           <div className="flex flex-wrap items-center gap-1.5">
@@ -387,7 +393,7 @@ export default function HomePage() {
                   }}
                   className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                     isActive
-                      ? 'matte-pill text-white shadow-md shadow-sky-500/10'
+                      ? 'matte-pill text-white shadow-sm'
                       : 'text-slate-400 hover:bg-white/5 hover:text-white'
                   }`}
                 >
@@ -396,24 +402,38 @@ export default function HomePage() {
                 </button>
               );
             })}
+
+            {/* Light / Dark Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              title="Switch Light / Dark Theme"
+              className="matte-pill flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-bold text-amber-400 transition hover:scale-105"
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-3.5 w-3.5" />
+              ) : (
+                <Moon className="h-3.5 w-3.5 text-indigo-500" />
+              )}
+              {theme === 'dark' ? 'Light' : 'Dark'}
+            </button>
           </div>
         </div>
       </nav>
 
       {/* =========================================================
-          PAGE 1: HOME (AGE GROUPS AT TOP + USEFUL DAILY TOOLS)
+          PAGE 1: HOME
          ========================================================= */}
       {activeNav === 'home' && (
         <div className="mx-auto max-w-5xl space-y-7 px-4 py-7">
-          {/* 1. AGE GROUPS RIGHT AT THE TOP */}
+          {/* 1. AGE GROUPS AT TOP */}
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-extrabold text-white">Age Groups</h2>
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-3 py-1 text-[11px] font-bold text-orange-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-3 py-1 text-[11px] font-bold text-orange-400">
                   <Flame className="h-3.5 w-3.5" /> {streak} Day Streak
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-3 py-1 text-[11px] font-bold text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-3 py-1 text-[11px] font-bold text-amber-400">
                   <Trophy className="h-3.5 w-3.5" /> {xp} XP
                 </span>
               </div>
@@ -427,7 +447,7 @@ export default function HomePage() {
                   ages: '0 – 12 yrs',
                   desc: 'Playful balance & motor drills.',
                   icon: Baby,
-                  badge: 'bg-cyan-500/20 text-cyan-300',
+                  badge: 'bg-cyan-500/20 text-cyan-400',
                 },
                 {
                   id: '13-17',
@@ -435,7 +455,7 @@ export default function HomePage() {
                   ages: '13 – 17 yrs',
                   desc: 'Agility, posture & core strength.',
                   icon: Zap,
-                  badge: 'bg-indigo-500/20 text-indigo-300',
+                  badge: 'bg-indigo-500/20 text-indigo-400',
                 },
                 {
                   id: '18-39',
@@ -443,7 +463,7 @@ export default function HomePage() {
                   ages: '18 – 59 yrs',
                   desc: 'Gym, dumbbells & cardio mastery.',
                   icon: Award,
-                  badge: 'bg-pink-500/20 text-pink-300',
+                  badge: 'bg-pink-500/20 text-pink-400',
                 },
                 {
                   id: '60-74',
@@ -451,7 +471,7 @@ export default function HomePage() {
                   ages: '60 – 90 yrs',
                   desc: 'Chair mobility & joint care.',
                   icon: Smile,
-                  badge: 'bg-emerald-500/20 text-emerald-300',
+                  badge: 'bg-emerald-500/20 text-emerald-400',
                 },
               ].map((card) => {
                 const Icon = card.icon;
@@ -465,7 +485,7 @@ export default function HomePage() {
                       <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${card.badge}`}>
                         {card.ages}
                       </span>
-                      <Icon className="h-4 w-4 text-slate-300 group-hover:text-sky-300" />
+                      <Icon className="h-4 w-4 text-slate-400 group-hover:text-sky-400" />
                     </div>
                     <h3 className="mt-3 text-base font-extrabold text-white">{card.title}</h3>
                     <p className="mt-1 text-xs text-slate-400">{card.desc}</p>
@@ -477,17 +497,16 @@ export default function HomePage() {
 
           {/* 2. DAILY ESSENTIALS: WATER + CALM BREATH + SURPRISE WORKOUT */}
           <section className="grid gap-3.5 md:grid-cols-3">
-            {/* Live Water Tracker */}
             <div className="matte-box-soft flex flex-col justify-between rounded-2xl p-4">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-xs font-extrabold text-cyan-300">
+                <span className="flex items-center gap-1.5 text-xs font-extrabold text-sky-400">
                   <Droplets className="h-4 w-4" /> Water Today
                 </span>
                 <span className="text-xs font-bold text-white">{waterGlasses} / 8</span>
               </div>
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-sky-500/15">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-sky-400 to-cyan-300 transition-all duration-300"
+                  className="h-full rounded-full bg-gradient-to-r from-sky-400 to-cyan-400 transition-all duration-300"
                   style={{ width: `${Math.min(100, (waterGlasses / 8) * 100)}%` }}
                 />
               </div>
@@ -498,7 +517,7 @@ export default function HomePage() {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => updateWater(waterGlasses - 1)}
-                    className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-slate-300 hover:bg-white/15"
+                    className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-1.5 text-slate-300 hover:bg-sky-500/20"
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
@@ -512,7 +531,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* 1-Tap Calm Breathing Mini-Pacer */}
             <div
               onClick={() => {
                 setBreathOn((v) => !v);
@@ -521,7 +539,7 @@ export default function HomePage() {
               className="matte-box-soft flex cursor-pointer items-center justify-between rounded-2xl p-4 transition hover:-translate-y-0.5"
             >
               <div>
-                <span className="flex items-center gap-1.5 text-xs font-extrabold text-indigo-300">
+                <span className="flex items-center gap-1.5 text-xs font-extrabold text-indigo-400">
                   <Wind className="h-4 w-4" /> Calm Breath
                 </span>
                 <p className="mt-2 text-lg font-extrabold text-white">{breathPhase}</p>
@@ -530,7 +548,7 @@ export default function HomePage() {
                 </p>
               </div>
               <div
-                className={`flex h-12 w-12 items-center justify-center rounded-full border border-indigo-400/50 bg-indigo-500/20 text-indigo-300 transition-transform duration-1000 ${
+                className={`flex h-12 w-12 items-center justify-center rounded-full border border-indigo-400/50 bg-indigo-500/20 text-indigo-400 transition-transform duration-1000 ${
                   breathOn && breathTick < 8 ? 'scale-110 bg-sky-500/30' : 'scale-90'
                 }`}
               >
@@ -538,10 +556,9 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* 1-Tap Surprise Workout Spinner */}
             <div className="matte-box-soft flex flex-col justify-between rounded-2xl p-4">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-xs font-extrabold text-pink-300">
+                <span className="flex items-center gap-1.5 text-xs font-extrabold text-pink-400">
                   <Shuffle className="h-4 w-4" /> Quick Pick
                 </span>
                 <span className="text-[11px] text-slate-400">Random Move</span>
@@ -559,7 +576,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* 3. MOOD CHECK-IN BAR */}
+          {/* 3. MOOD CHECK-IN */}
           <section className="matte-box-soft rounded-2xl p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs font-extrabold text-white">How do you feel right now?</p>
@@ -573,7 +590,7 @@ export default function HomePage() {
                       className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
                         mood === key
                           ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white'
-                          : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                          : 'border border-sky-500/15 bg-sky-500/5 text-slate-300 hover:bg-sky-500/15'
                       }`}
                     >
                       {m.emoji} {m.label}
@@ -584,14 +601,14 @@ export default function HomePage() {
             </div>
 
             {mood && (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3">
-                <p className="text-xs text-sky-300">{MOOD_PRESETS[mood].tip}</p>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-sky-500/15 pt-3">
+                <p className="text-xs text-sky-400">{MOOD_PRESETS[mood].tip}</p>
                 <button
                   onClick={() => {
                     const target = WELLNESS_TOOLS.find((t) => t.id === MOOD_PRESETS[mood].toolId);
                     if (target) setQuickTool(target);
                   }}
-                  className="rounded-lg bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-300 hover:bg-sky-500/30"
+                  className="rounded-lg bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-400 hover:bg-sky-500/30"
                 >
                   {MOOD_PRESETS[mood].actionLabel} →
                 </button>
@@ -599,7 +616,7 @@ export default function HomePage() {
             )}
           </section>
 
-          {/* 4. SAVED FAVORITE EXERCISES (IF ANY BOOKMARKED) */}
+          {/* 4. SAVED FAVORITES */}
           {favoriteExercises.length > 0 && (
             <section className="space-y-3">
               <div className="flex items-center justify-between">
@@ -634,7 +651,7 @@ export default function HomePage() {
             </section>
           )}
 
-          {/* 5. MAIN ACTION BANNER */}
+          {/* 5. MAIN ACTION BANNER + GAIN CALORIES & PROTEIN BUTTON */}
           <section className="matte-box rounded-3xl p-6">
             <div className="flex flex-wrap items-center justify-between gap-5">
               <div>
@@ -645,26 +662,26 @@ export default function HomePage() {
                   </span>
                 </h2>
                 <p className="mt-1.5 max-w-md text-xs text-slate-300">
-                  Animated workouts, daily body tracking, timers, and personal 🥷 &amp; 🌸 coaches.
+                  Animated workouts, calories &amp; protein meal combos, timers, and 🥷 &amp; 🌸 coaches.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2.5">
                 <button
                   onClick={openExercisesWizard}
-                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-sky-500/20 transition hover:brightness-110"
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:brightness-110"
                 >
                   Exercises <ArrowRight className="h-3.5 w-3.5" />
                 </button>
                 <button
-                  onClick={() => setActiveNav('tools')}
-                  className="matte-pill flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-xs font-bold text-indigo-300 hover:text-white"
+                  onClick={() => setNutritionOpen(true)}
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:brightness-110"
                 >
-                  <Layers className="h-3.5 w-3.5" /> Health Tools
+                  <Utensils className="h-3.5 w-3.5" /> Gain Calories &amp; Protein
                 </button>
                 <button
                   onClick={() => setActiveNav('maintainer')}
-                  className="matte-pill flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-xs font-bold text-pink-300 hover:text-white"
+                  className="matte-pill flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-xs font-bold text-sky-400 hover:opacity-90"
                 >
                   <HeartPulse className="h-3.5 w-3.5" /> Maintainer
                 </button>
@@ -691,11 +708,11 @@ export default function HomePage() {
                   onClick={() => setQuickTool(tool)}
                   className="matte-box-soft group flex items-center gap-3 rounded-2xl p-3.5 text-left transition hover:-translate-y-0.5"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-base">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-base">
                     {tool.emoji}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-extrabold text-white group-hover:text-sky-300">
+                    <p className="truncate text-xs font-extrabold text-white group-hover:text-sky-400">
                       {tool.title}
                     </p>
                     <p className="truncate text-[11px] text-slate-400">{tool.tagline}</p>
@@ -711,7 +728,7 @@ export default function HomePage() {
               <h3 className="text-lg font-extrabold text-white">Categories</h3>
               <button
                 onClick={() => setActiveNav('tools')}
-                className="rounded-xl bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-300 hover:bg-sky-500/30"
+                className="rounded-xl bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-400 hover:bg-sky-500/30"
               >
                 Open Tools
               </button>
@@ -738,7 +755,7 @@ export default function HomePage() {
           <section className="matte-box rounded-3xl p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300">
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400">
                   <Star className="h-3.5 w-3.5" /> Level Plans
                 </span>
                 <h3 className="mt-0.5 text-lg font-extrabold text-white">Training Guides</h3>
@@ -748,7 +765,7 @@ export default function HomePage() {
                   <button
                     key={lvl}
                     onClick={() => setGuideLevel(lvl)}
-                    className="matte-pill flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-slate-200 hover:text-white"
+                    className="matte-pill flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-slate-200 hover:opacity-90"
                   >
                     <ShieldCheck className="h-3.5 w-3.5 text-sky-400" />
                     {lvl}
@@ -810,7 +827,7 @@ export default function HomePage() {
                         }
                       }}
                       className={`flex flex-col items-center rounded-2xl p-4 text-center transition hover:-translate-y-0.5 ${
-                        isSelected ? 'matte-box text-white' : 'matte-box-soft text-slate-300 hover:text-white'
+                        isSelected ? 'matte-box text-white' : 'matte-box-soft text-slate-300'
                       }`}
                     >
                       <span className="text-2xl">{bp.emoji}</span>
@@ -842,7 +859,7 @@ export default function HomePage() {
                           setSelectedMuscle(m);
                           setExerciseStep(2);
                         }}
-                        className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-white/15"
+                        className="rounded-lg border border-sky-500/20 bg-sky-500/10 px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-sky-500/20"
                       >
                         {m} →
                       </button>
@@ -878,7 +895,7 @@ export default function HomePage() {
                       key={g.id}
                       onClick={() => setSelectedGoal(g.id)}
                       className={`rounded-2xl p-3.5 text-left transition ${
-                        selectedGoal === g.id ? 'matte-box text-white' : 'matte-box-soft text-slate-300 hover:text-white'
+                        selectedGoal === g.id ? 'matte-box text-white' : 'matte-box-soft text-slate-300'
                       }`}
                     >
                       <p className="text-xs font-extrabold">{g.label}</p>
@@ -898,7 +915,7 @@ export default function HomePage() {
                       key={t.id}
                       onClick={() => setSelectedTime(t.id)}
                       className={`flex flex-col items-center rounded-2xl p-3 text-center transition ${
-                        selectedTime === t.id ? 'matte-box text-white' : 'matte-box-soft text-slate-300 hover:text-white'
+                        selectedTime === t.id ? 'matte-box text-white' : 'matte-box-soft text-slate-300'
                       }`}
                     >
                       <span className="text-lg">{t.emoji}</span>
@@ -911,7 +928,7 @@ export default function HomePage() {
               <div className="mt-7 flex items-center justify-between gap-3">
                 <button
                   onClick={() => setExerciseStep(1)}
-                  className="matte-box-soft flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-300 hover:text-white"
+                  className="matte-box-soft flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-300"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" /> Back
                 </button>
@@ -935,25 +952,25 @@ export default function HomePage() {
                   <div className="flex flex-wrap items-center gap-1.5">
                     <button
                       onClick={() => setExerciseStep(2)}
-                      className="matte-box-soft flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-300 hover:text-white"
+                      className="matte-box-soft flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-300"
                     >
                       <ArrowLeft className="h-3 w-3" /> Back
                     </button>
-                    <span className="rounded-full bg-sky-500/20 px-3 py-1 text-xs font-bold text-sky-300">
+                    <span className="rounded-full bg-sky-500/20 px-3 py-1 text-xs font-bold text-sky-400">
                       {activeBodyGroup?.emoji} {activeBodyGroup?.label}
                       {selectedMuscle !== 'all' ? `: ${selectedMuscle}` : ''}
                     </span>
-                    <span className="rounded-full bg-pink-500/20 px-3 py-1 text-xs font-bold text-pink-300">
+                    <span className="rounded-full bg-pink-500/20 px-3 py-1 text-xs font-bold text-pink-400">
                       {activeGoalObj?.label}
                     </span>
-                    <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-300">
+                    <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-400">
                       {activeTimeObj?.emoji} {activeTimeObj?.label}
                     </span>
                   </div>
 
                   <button
                     onClick={resetAllFilters}
-                    className="flex items-center gap-1 rounded-xl bg-rose-500/20 px-3 py-1.5 text-xs font-bold text-rose-300 hover:bg-rose-500/30"
+                    className="flex items-center gap-1 rounded-xl bg-rose-500/20 px-3 py-1.5 text-xs font-bold text-rose-400 hover:bg-rose-500/30"
                   >
                     <RotateCcw className="h-3 w-3" /> Reset
                   </button>
@@ -969,14 +986,14 @@ export default function HomePage() {
                         setVisibleCount(24);
                       }}
                       placeholder="Search exercises..."
-                      className="w-full rounded-xl border border-white/10 bg-[#09090d] py-2 pl-9 pr-3 text-xs font-semibold text-white outline-none placeholder:text-slate-500 focus:border-sky-400"
+                      className="w-full rounded-xl border border-sky-500/20 bg-[var(--bg-input)] py-2 pl-9 pr-3 text-xs font-semibold text-white outline-none placeholder:text-slate-500 focus:border-sky-400"
                     />
                   </div>
 
                   <select
                     value={selectedAge}
                     onChange={(e) => setSelectedAge(e.target.value)}
-                    className="rounded-xl border border-white/10 bg-[#09090d] px-3 py-2 text-xs font-bold text-slate-200 outline-none"
+                    className="rounded-xl border border-sky-500/20 bg-[var(--bg-input)] px-3 py-2 text-xs font-bold text-slate-200 outline-none"
                   >
                     {AGE_GROUPS.map((g) => (
                       <option key={g.id} value={g.id}>
@@ -985,7 +1002,7 @@ export default function HomePage() {
                     ))}
                   </select>
 
-                  <div className="flex gap-1 rounded-xl border border-white/10 bg-[#09090d] p-1">
+                  <div className="flex gap-1 rounded-xl border border-sky-500/20 bg-[var(--bg-input)] p-1">
                     {['All', 'Male', 'Female'].map((gen) => (
                       <button
                         key={gen}
@@ -1060,17 +1077,17 @@ export default function HomePage() {
                           </div>
                           <div className="p-3.5">
                             <div className="flex flex-wrap gap-1 text-[10px] font-bold">
-                              <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-sky-300">
+                              <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-sky-400">
                                 {ex.level}
                               </span>
-                              <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-indigo-300">
+                              <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-indigo-400">
                                 {ex.muscle_group}
                               </span>
-                              <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-pink-300">
+                              <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-pink-400">
                                 {ex.equipment}
                               </span>
                             </div>
-                            <h3 className="mt-2 text-base font-extrabold text-white group-hover:text-sky-300">
+                            <h3 className="mt-2 text-base font-extrabold text-white group-hover:text-sky-400">
                               {ex.name}
                             </h3>
                             <p className="mt-1 text-[11px] text-slate-400">
@@ -1086,7 +1103,7 @@ export default function HomePage() {
                     <div className="mt-8 text-center">
                       <button
                         onClick={() => setVisibleCount((c) => c + 24)}
-                        className="matte-pill rounded-xl px-6 py-2.5 text-xs font-bold text-sky-300 hover:text-white"
+                        className="matte-pill rounded-xl px-6 py-2.5 text-xs font-bold text-sky-400 hover:opacity-90"
                       >
                         Load More
                       </button>
@@ -1116,7 +1133,6 @@ export default function HomePage() {
       {activeNav === 'about' && (
         <section className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center px-4 py-12">
           <div className="matte-box relative w-full overflow-hidden rounded-3xl px-8 py-16 text-center shadow-2xl shadow-pink-500/10">
-            {/* Soft Floating Animated Hearts */}
             <span className="animate-float-up pointer-events-none absolute left-[18%] top-2/3 text-lg opacity-60">
               🌸
             </span>
@@ -1131,7 +1147,7 @@ export default function HomePage() {
               <Heart className="animate-heartbeat h-8 w-8 fill-pink-500 text-pink-400" />
             </div>
 
-            <h2 className="animate-shimmer-text mt-6 bg-gradient-to-r from-pink-400 via-sky-300 to-rose-400 bg-clip-text text-2xl font-extrabold tracking-tight text-transparent sm:text-4xl">
+            <h2 className="animate-shimmer-text mt-6 bg-gradient-to-r from-pink-400 via-sky-400 to-rose-400 bg-clip-text text-2xl font-extrabold tracking-tight text-transparent sm:text-4xl">
               Created for my Hubie with Love.
             </h2>
           </div>
@@ -1140,8 +1156,8 @@ export default function HomePage() {
 
       {/* Exercise Modal */}
       {activeExercise && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-          <div className="matte-box relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl p-5 text-slate-100 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="matte-box relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl p-5 shadow-2xl">
             <div className="absolute right-4 top-4 flex items-center gap-1.5">
               <button
                 onClick={() => toggleFavorite(activeExercise.id)}
@@ -1161,7 +1177,7 @@ export default function HomePage() {
                   setActiveExercise(null);
                   setIsGuidedMode(false);
                 }}
-                className="rounded-xl bg-white/10 p-1.5 text-slate-300 hover:bg-white/20 hover:text-white"
+                className="rounded-xl bg-white/10 p-1.5 text-slate-300 hover:bg-white/20"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1192,7 +1208,7 @@ export default function HomePage() {
 
                 <button
                   onClick={() => setIsGuidedMode(true)}
-                  className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 py-3 text-xs font-extrabold text-white shadow-lg shadow-sky-500/20 hover:brightness-110"
+                  className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 py-3 text-xs font-extrabold text-white shadow-md hover:brightness-110"
                 >
                   <Play className="h-3.5 w-3.5 fill-white" /> Start Exercise
                 </button>
@@ -1245,7 +1261,7 @@ export default function HomePage() {
                 </ol>
 
                 {activeExercise.safety_note && (
-                  <p className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300">
+                  <p className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-400">
                     <strong>Safety:</strong> {activeExercise.safety_note}
                   </p>
                 )}
@@ -1255,12 +1271,12 @@ export default function HomePage() {
         </div>
       )}
 
+      <NutritionGainModal open={nutritionOpen} onClose={() => setNutritionOpen(false)} />
       <InteractiveToolModal
         tool={quickTool}
         onClose={() => setQuickTool(null)}
         onEarnXp={earnXp}
       />
-
       <LevelGuideModal selectedLevel={guideLevel} onClose={() => setGuideLevel(null)} />
       <BloomCoach />
     </main>
