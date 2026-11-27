@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { Search, Dumbbell, ShieldCheck, X, PlayCircle } from 'lucide-react';
+import { Search, Dumbbell, ShieldCheck, X, PlayCircle, HeartPulse } from 'lucide-react';
 import { supabase, Exercise } from '@/lib/supabase';
 import { AGE_GROUPS, LevelKey } from '@/lib/data';
 import LevelGuideModal from '@/components/LevelGuideModal';
 import BloomCoach from '@/components/BloomCoach';
 import ExerciseAnimator from '@/components/ExerciseAnimator';
+import HealthTrackerModal from '@/components/HealthTrackerModal';
 
 export default function HomePage() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -18,6 +19,7 @@ export default function HomePage() {
   const [visibleCount, setVisibleCount] = useState<number>(24);
   const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
   const [guideLevel, setGuideLevel] = useState<LevelKey | null>(null);
+  const [healthOpen, setHealthOpen] = useState(false);
 
   useEffect(() => {
     const fetchAllExercises = async () => {
@@ -84,6 +86,14 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setHealthOpen(true)}
+                className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-3.5 py-2 text-xs font-extrabold text-black transition hover:bg-emerald-400"
+              >
+                <HeartPulse className="h-4 w-4" />
+                Health & Hourly Tracker
+              </button>
+
               {(['Beginner', 'Intermediate', 'Advanced'] as LevelKey[]).map((lvl) => (
                 <button
                   key={lvl}
@@ -259,6 +269,7 @@ export default function HomePage() {
       )}
 
       <LevelGuideModal selectedLevel={guideLevel} onClose={() => setGuideLevel(null)} />
+      <HealthTrackerModal open={healthOpen} onClose={() => setHealthOpen(false)} />
       <BloomCoach />
     </main>
   );
