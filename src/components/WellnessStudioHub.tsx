@@ -37,11 +37,10 @@ const CLEAN_CAT_LABELS: Record<ToolCategory, string> = {
 interface ModalProps {
   tool: WellnessTool | null;
   onClose: () => void;
-  onEarnXp: (pts: number) => void;
+  onEarnXp: (pts: number, title?: string) => void;
 }
 
 export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
-  // Default: 18-year-old Female
   const [weight, setWeight] = useState(54);
   const [height, setHeight] = useState(162);
   const [age, setAge] = useState(18);
@@ -155,11 +154,17 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
           sub: `Healthy range for ${height} cm`,
         };
       case 'lbm': {
-        const lbm = gender === 'male' ? 0.407 * weight + 0.267 * height - 19.2 : 0.252 * weight + 0.473 * height - 48.3;
+        const lbm =
+          gender === 'male'
+            ? 0.407 * weight + 0.267 * height - 19.2
+            : 0.252 * weight + 0.473 * height - 48.3;
         return { main: `${lbm.toFixed(1)} kg Lean Mass`, sub: 'Muscle, bone & water' };
       }
       case 'body-fat': {
-        const bf = Math.max(10, Math.min(45, (waist / height) * 42 - (gender === 'male' ? 6 : 0))).toFixed(1);
+        const bf = Math.max(
+          10,
+          Math.min(45, (waist / height) * 42 - (gender === 'male' ? 6 : 0))
+        ).toFixed(1);
         return { main: `~${bf}% Body Fat`, sub: `Waist ${waist} cm • Height ${height} cm` };
       }
       case 'whtr': {
@@ -235,9 +240,29 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
       default:
         return { main: 'Ready', sub: '' };
     }
-  }, [tool, weight, height, age, gender, liftWeight, liftReps, steps, rhr, waist, wrist, minutes, paceMin, wakeHour, bedHour, sleepAvg]);
+  }, [
+    tool,
+    weight,
+    height,
+    age,
+    gender,
+    liftWeight,
+    liftReps,
+    steps,
+    rhr,
+    waist,
+    wrist,
+    minutes,
+    paceMin,
+    wakeHour,
+    bedHour,
+    sleepAvg,
+  ]);
 
   if (!tool) return null;
+
+  const inputClass =
+    'mt-1 w-full rounded-xl border border-sky-500/25 bg-[var(--bg-input)] px-3 py-1.5 text-sm font-bold text-[var(--text-primary)] outline-none focus:border-sky-400';
 
   const getTimerCue = () => {
     if (tool.timerMode === 'box-breath') {
@@ -260,50 +285,100 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-      <div className="matte-box relative max-h-[88vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 text-slate-100 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+      <div className="matte-box relative max-h-[88vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 text-[var(--text-primary)] shadow-2xl">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-xl bg-white/10 p-1.5 text-slate-300 hover:bg-white/20 hover:text-white"
+          className="absolute right-4 top-4 rounded-xl bg-sky-500/10 p-1.5 text-[var(--text-muted)] hover:bg-sky-500/20 hover:text-[var(--text-primary)]"
         >
           <X className="h-4 w-4" />
         </button>
 
         <div className="flex items-center gap-3 pr-8">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-xl">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/15 text-xl">
             {tool.emoji}
           </span>
-          <h3 className="text-lg font-extrabold text-white">{tool.title}</h3>
+          <h3 className="text-lg font-extrabold text-[var(--text-primary)]">{tool.title}</h3>
         </div>
 
-        <p className="mt-2 text-xs text-slate-300">{tool.tagline}</p>
+        <p className="mt-2 text-xs text-[var(--text-secondary)]">{tool.tagline}</p>
 
         {/* CALCULATOR */}
         {tool.engine === 'calculator' && calcResult && (
           <div className="mt-4 space-y-3.5">
             <div className="matte-box-soft grid grid-cols-2 gap-2.5 rounded-2xl p-3.5">
-              {['bmi', 'bmr', 'tdee', 'ideal-weight', 'lbm', 'body-fat', 'whtr', 'bulking', 'cutting', 'recomp', 'protein', 'water', 'macros', 'fiber', 'relative-strength', 'ffmi', 'ergonomics'].includes(tool.calcType || '') && (
+              {[
+                'bmi',
+                'bmr',
+                'tdee',
+                'ideal-weight',
+                'lbm',
+                'body-fat',
+                'whtr',
+                'bulking',
+                'cutting',
+                'recomp',
+                'protein',
+                'water',
+                'macros',
+                'fiber',
+                'relative-strength',
+                'ffmi',
+                'ergonomics',
+              ].includes(tool.calcType || '') && (
                 <>
-                  <label className="text-[11px] font-bold text-slate-400">
+                  <label className="text-[11px] font-bold text-[var(--text-muted)]">
                     Weight (kg)
-                    <input type="number" value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                    <input
+                      type="number"
+                      value={weight}
+                      onChange={(e) => setWeight(Number(e.target.value))}
+                      className={inputClass}
+                    />
                   </label>
-                  <label className="text-[11px] font-bold text-slate-400">
+                  <label className="text-[11px] font-bold text-[var(--text-muted)]">
                     Height (cm)
-                    <input type="number" value={height} onChange={(e) => setHeight(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                    <input
+                      type="number"
+                      value={height}
+                      onChange={(e) => setHeight(Number(e.target.value))}
+                      className={inputClass}
+                    />
                   </label>
                 </>
               )}
 
-              {['bmr', 'tdee', 'lbm', 'body-fat', 'bulking', 'cutting', 'recomp', 'macros', 'fiber', 'hrmax', 'zone2', 'vo2max'].includes(tool.calcType || '') && (
+              {[
+                'bmr',
+                'tdee',
+                'lbm',
+                'body-fat',
+                'bulking',
+                'cutting',
+                'recomp',
+                'macros',
+                'fiber',
+                'hrmax',
+                'zone2',
+                'vo2max',
+              ].includes(tool.calcType || '') && (
                 <>
-                  <label className="text-[11px] font-bold text-slate-400">
+                  <label className="text-[11px] font-bold text-[var(--text-muted)]">
                     Age
-                    <input type="number" value={age} onChange={(e) => setAge(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                    <input
+                      type="number"
+                      value={age}
+                      onChange={(e) => setAge(Number(e.target.value))}
+                      className={inputClass}
+                    />
                   </label>
-                  <label className="text-[11px] font-bold text-slate-400">
+                  <label className="text-[11px] font-bold text-[var(--text-muted)]">
                     Gender
-                    <select value={gender} onChange={(e) => setGender(e.target.value as 'male' | 'female')} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400">
+                    <select
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value as 'male' | 'female')}
+                      className={inputClass}
+                    >
                       <option value="female">Female</option>
                       <option value="male">Male</option>
                     </select>
@@ -311,88 +386,157 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
                 </>
               )}
 
-              {['1rm', 'relative-strength', 'plate-loader', 'overload', 'warmup-ramp', 'db-to-bb'].includes(tool.calcType || '') && (
-                <label className="text-[11px] font-bold text-slate-400">
+              {[
+                '1rm',
+                'relative-strength',
+                'plate-loader',
+                'overload',
+                'warmup-ramp',
+                'db-to-bb',
+              ].includes(tool.calcType || '') && (
+                <label className="text-[11px] font-bold text-[var(--text-muted)]">
                   Weight (kg)
-                  <input type="number" value={liftWeight} onChange={(e) => setLiftWeight(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                  <input
+                    type="number"
+                    value={liftWeight}
+                    onChange={(e) => setLiftWeight(Number(e.target.value))}
+                    className={inputClass}
+                  />
                 </label>
               )}
 
               {['1rm', 'overload', 'volume', 'tut'].includes(tool.calcType || '') && (
-                <label className="text-[11px] font-bold text-slate-400">
+                <label className="text-[11px] font-bold text-[var(--text-muted)]">
                   {tool.calcType === 'volume' ? 'Sets' : 'Reps'}
-                  <input type="number" value={liftReps} onChange={(e) => setLiftReps(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                  <input
+                    type="number"
+                    value={liftReps}
+                    onChange={(e) => setLiftReps(Number(e.target.value))}
+                    className={inputClass}
+                  />
                 </label>
               )}
 
               {['body-fat', 'whtr'].includes(tool.calcType || '') && (
-                <label className="text-[11px] font-bold text-slate-400">
+                <label className="text-[11px] font-bold text-[var(--text-muted)]">
                   Waist (cm)
-                  <input type="number" value={waist} onChange={(e) => setWaist(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                  <input
+                    type="number"
+                    value={waist}
+                    onChange={(e) => setWaist(Number(e.target.value))}
+                    className={inputClass}
+                  />
                 </label>
               )}
 
               {tool.calcType === 'frame-size' && (
-                <label className="col-span-2 text-[11px] font-bold text-slate-400">
+                <label className="col-span-2 text-[11px] font-bold text-[var(--text-muted)]">
                   Wrist (cm)
-                  <input type="number" value={wrist} onChange={(e) => setWrist(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                  <input
+                    type="number"
+                    value={wrist}
+                    onChange={(e) => setWrist(Number(e.target.value))}
+                    className={inputClass}
+                  />
                 </label>
               )}
 
               {tool.calcType === 'steps-calc' && (
-                <label className="col-span-2 text-[11px] font-bold text-slate-400">
+                <label className="col-span-2 text-[11px] font-bold text-[var(--text-muted)]">
                   Steps
-                  <input type="number" value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                  <input
+                    type="number"
+                    value={steps}
+                    onChange={(e) => setSteps(Number(e.target.value))}
+                    className={inputClass}
+                  />
                 </label>
               )}
 
               {['vo2max', 'rhr'].includes(tool.calcType || '') && (
-                <label className="text-[11px] font-bold text-slate-400">
+                <label className="text-[11px] font-bold text-[var(--text-muted)]">
                   Resting BPM
-                  <input type="number" value={rhr} onChange={(e) => setRhr(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                  <input
+                    type="number"
+                    value={rhr}
+                    onChange={(e) => setRhr(Number(e.target.value))}
+                    className={inputClass}
+                  />
                 </label>
               )}
 
               {['sweat-water', 'jump-rope', 'weight-predict'].includes(tool.calcType || '') && (
-                <label className="col-span-2 text-[11px] font-bold text-slate-400">
+                <label className="col-span-2 text-[11px] font-bold text-[var(--text-muted)]">
                   {tool.calcType === 'weight-predict' ? 'Calorie Delta' : 'Minutes'}
-                  <input type="number" value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                  <input
+                    type="number"
+                    value={minutes}
+                    onChange={(e) => setMinutes(Number(e.target.value))}
+                    className={inputClass}
+                  />
                 </label>
               )}
 
               {tool.calcType === 'run-pace' && (
-                <label className="col-span-2 text-[11px] font-bold text-slate-400">
+                <label className="col-span-2 text-[11px] font-bold text-[var(--text-muted)]">
                   Min / km
-                  <input type="number" value={paceMin} onChange={(e) => setPaceMin(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                  <input
+                    type="number"
+                    value={paceMin}
+                    onChange={(e) => setPaceMin(Number(e.target.value))}
+                    className={inputClass}
+                  />
                 </label>
               )}
 
               {tool.calcType === 'caffeine' && (
-                <label className="col-span-2 text-[11px] font-bold text-slate-400">
+                <label className="col-span-2 text-[11px] font-bold text-[var(--text-muted)]">
                   Bedtime Hour (24h)
-                  <input type="number" min={18} max={23} value={bedHour} onChange={(e) => setBedHour(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                  <input
+                    type="number"
+                    min={18}
+                    max={23}
+                    value={bedHour}
+                    onChange={(e) => setBedHour(Number(e.target.value))}
+                    className={inputClass}
+                  />
                 </label>
               )}
 
               {tool.calcType === 'sleep-cycles' && (
-                <label className="col-span-2 text-[11px] font-bold text-slate-400">
+                <label className="col-span-2 text-[11px] font-bold text-[var(--text-muted)]">
                   Wake Hour (AM)
-                  <input type="number" min={4} max={11} value={wakeHour} onChange={(e) => setWakeHour(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                  <input
+                    type="number"
+                    min={4}
+                    max={11}
+                    value={wakeHour}
+                    onChange={(e) => setWakeHour(Number(e.target.value))}
+                    className={inputClass}
+                  />
                 </label>
               )}
 
               {tool.calcType === 'sleep-debt' && (
-                <label className="col-span-2 text-[11px] font-bold text-slate-400">
+                <label className="col-span-2 text-[11px] font-bold text-[var(--text-muted)]">
                   Avg Sleep Hours
-                  <input type="number" step="0.5" value={sleepAvg} onChange={(e) => setSleepAvg(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#08080c] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-sky-400" />
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={sleepAvg}
+                    onChange={(e) => setSleepAvg(Number(e.target.value))}
+                    className={inputClass}
+                  />
                 </label>
               )}
             </div>
 
             <div className="matte-box rounded-2xl p-4">
               <p className="text-[10px] font-bold uppercase tracking-wider text-sky-400">Result</p>
-              <p className="mt-0.5 text-xl font-extrabold text-white">{calcResult.main}</p>
-              <p className="mt-0.5 text-xs text-slate-300">{calcResult.sub}</p>
+              <p className="mt-0.5 text-xl font-extrabold text-[var(--text-primary)]">
+                {calcResult.main}
+              </p>
+              <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{calcResult.sub}</p>
             </div>
           </div>
         )}
@@ -401,7 +545,7 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
         {tool.engine === 'timer' && (
           <div className="matte-box-soft mt-4 rounded-2xl p-5 text-center">
             <p className="text-xs font-extrabold tracking-wider text-pink-400">{getTimerCue()}</p>
-            <p className="mt-2 text-5xl font-extrabold text-white">{secondsLeft}s</p>
+            <p className="mt-2 text-5xl font-extrabold text-[var(--text-primary)]">{secondsLeft}s</p>
             <div className="mt-5 flex justify-center gap-2.5">
               <button
                 onClick={() => setRunning((r) => !r)}
@@ -415,7 +559,7 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
                   setRunning(false);
                   setSecondsLeft(tool.timerSeconds || 60);
                 }}
-                className="flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-xs font-bold text-slate-300 hover:text-white"
+                className="matte-pill flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold text-[var(--text-primary)]"
               >
                 <RotateCcw className="h-3.5 w-3.5" /> Reset
               </button>
@@ -427,8 +571,11 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
         {tool.engine === 'routine' && tool.steps && (
           <div className="mt-4 space-y-2">
             {tool.steps.map((step, i) => (
-              <div key={i} className="matte-box-soft rounded-xl p-3 text-xs text-slate-200">
-                <span className="mr-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-sky-500/30 text-[10px] font-bold text-sky-300">
+              <div
+                key={i}
+                className="matte-box-soft rounded-xl p-3 text-xs text-[var(--text-secondary)]"
+              >
+                <span className="mr-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-sky-500/25 text-[10px] font-bold text-sky-400">
                   {i + 1}
                 </span>
                 {step}
@@ -445,10 +592,16 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
                 key={i}
                 onClick={() => setChecked((p) => ({ ...p, [i]: !p[i] }))}
                 className={`flex w-full items-start gap-2.5 rounded-xl p-3 text-left text-xs font-semibold transition ${
-                  checked[i] ? 'matte-box text-sky-300' : 'matte-box-soft text-slate-300'
+                  checked[i]
+                    ? 'matte-box text-sky-400'
+                    : 'matte-box-soft text-[var(--text-secondary)]'
                 }`}
               >
-                <CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${checked[i] ? 'text-emerald-400' : 'text-slate-600'}`} />
+                <CheckCircle2
+                  className={`mt-0.5 h-4 w-4 shrink-0 ${
+                    checked[i] ? 'text-emerald-400' : 'text-[var(--text-muted)]'
+                  }`}
+                />
                 <span>{step}</span>
               </button>
             ))}
@@ -460,11 +613,11 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
             disabled={claimed}
             onClick={() => {
               setClaimed(true);
-              onEarnXp(25);
+              onEarnXp(25, tool.title);
             }}
             className={`flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition ${
               claimed
-                ? 'bg-emerald-500/20 text-emerald-300'
+                ? 'bg-emerald-500/20 text-emerald-400'
                 : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:brightness-110'
             }`}
           >
@@ -479,11 +632,15 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
 
 interface HubProps {
   xp: number;
-  onEarnXp: (pts: number) => void;
+  onEarnXp: (pts: number, title?: string) => void;
   initialCategory?: ToolCategory;
 }
 
-export default function WellnessStudioHub({ xp, onEarnXp, initialCategory = 'All' }: HubProps) {
+export default function WellnessStudioHub({
+  xp,
+  onEarnXp,
+  initialCategory = 'All',
+}: HubProps) {
   const [selectedCat, setSelectedCat] = useState<ToolCategory>(initialCategory);
   const [query, setQuery] = useState('');
   const [activeTool, setActiveTool] = useState<WellnessTool | null>(null);
@@ -511,11 +668,11 @@ export default function WellnessStudioHub({ xp, onEarnXp, initialCategory = 'All
     <section className="mx-auto max-w-5xl space-y-6 px-4 py-8">
       <div className="matte-box rounded-3xl p-5 sm:p-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl font-extrabold text-white">Health Tools</h2>
+          <h2 className="text-2xl font-extrabold text-[var(--text-primary)]">Health Tools</h2>
 
           <div className="matte-pill flex items-center gap-2 rounded-full px-4 py-1.5">
             <Flame className="h-4 w-4 text-amber-400" />
-            <span className="text-xs font-extrabold text-white">{xp} XP</span>
+            <span className="text-xs font-extrabold text-[var(--text-primary)]">{xp} XP</span>
           </div>
         </div>
 
@@ -525,7 +682,7 @@ export default function WellnessStudioHub({ xp, onEarnXp, initialCategory = 'All
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search tools..."
-            className="w-full rounded-xl border border-white/10 bg-[#09090d] py-2.5 pl-10 pr-4 text-xs font-semibold text-white outline-none placeholder:text-slate-500 focus:border-sky-400"
+            className="w-full rounded-xl border border-sky-500/25 bg-[var(--bg-input)] py-2.5 pl-10 pr-4 text-xs font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-sky-400"
           />
         </div>
 
@@ -537,7 +694,7 @@ export default function WellnessStudioHub({ xp, onEarnXp, initialCategory = 'All
               className={`flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
                 selectedCat === c.id
                   ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white'
-                  : 'matte-box-soft text-slate-300 hover:text-white'
+                  : 'matte-box-soft text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               <span>{c.emoji}</span> {CLEAN_CAT_LABELS[c.id]}
@@ -554,29 +711,43 @@ export default function WellnessStudioHub({ xp, onEarnXp, initialCategory = 'All
             className="matte-box-soft group cursor-pointer rounded-2xl p-4 transition duration-200 hover:-translate-y-1"
           >
             <div className="flex items-center justify-between">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-lg">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/15 text-lg">
                 {tool.emoji}
               </span>
               {tool.badge && (
-                <span className="rounded-full bg-pink-500/20 px-2.5 py-0.5 text-[10px] font-bold text-pink-300">
+                <span className="rounded-full bg-pink-500/20 px-2.5 py-0.5 text-[10px] font-bold text-pink-400">
                   {tool.badge}
                 </span>
               )}
             </div>
 
-            <h3 className="mt-3 text-sm font-extrabold text-white group-hover:text-sky-300">
+            <h3 className="mt-3 text-sm font-extrabold text-[var(--text-primary)] group-hover:text-sky-400">
               {tool.title}
             </h3>
-            <p className="mt-1 line-clamp-2 text-xs text-slate-400">
-              {tool.tagline}
-            </p>
+            <p className="mt-1 line-clamp-2 text-xs text-[var(--text-muted)]">{tool.tagline}</p>
 
             <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-2.5 text-[11px] font-bold text-sky-400">
               <span className="flex items-center gap-1">
-                {tool.engine === 'calculator' && <><Calculator className="h-3 w-3" /> Calc</>}
-                {tool.engine === 'timer' && <><Timer className="h-3 w-3" /> Timer</>}
-                {tool.engine === 'routine' && <><Zap className="h-3 w-3" /> Guide</>}
-                {tool.engine === 'checklist' && <><ListChecks className="h-3 w-3" /> Check</>}
+                {tool.engine === 'calculator' && (
+                  <>
+                    <Calculator className="h-3 w-3" /> Calc
+                  </>
+                )}
+                {tool.engine === 'timer' && (
+                  <>
+                    <Timer className="h-3 w-3" /> Timer
+                  </>
+                )}
+                {tool.engine === 'routine' && (
+                  <>
+                    <Zap className="h-3 w-3" /> Guide
+                  </>
+                )}
+                {tool.engine === 'checklist' && (
+                  <>
+                    <ListChecks className="h-3 w-3" /> Check
+                  </>
+                )}
               </span>
               <span>Open →</span>
             </div>

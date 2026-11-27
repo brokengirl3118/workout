@@ -33,6 +33,7 @@ import {
   Moon,
   Sun,
   Utensils,
+  User,
 } from 'lucide-react';
 import { supabase, Exercise } from '@/lib/supabase';
 import { AGE_GROUPS, LevelKey } from '@/lib/data';
@@ -53,6 +54,14 @@ import GuidedExercisePlayer from '@/components/GuidedExercisePlayer';
 import WellnessStudioHub, { InteractiveToolModal } from '@/components/WellnessStudioHub';
 import WelcomeSplash from '@/components/WelcomeSplash';
 import NutritionGainModal from '@/components/NutritionGainModal';
+import {
+  AuthModal,
+  NotificationBell,
+  AlertEntry,
+  UserProfileData,
+  loadUsersDb,
+  saveUserProfile,
+} from '@/components/AccountAndAlerts';
 
 type NavTab = 'home' | 'maintainer' | 'exercises' | 'tools' | 'about';
 type ExerciseStep = 1 | 2 | 3;
@@ -111,6 +120,19 @@ export default function HomePage() {
   const [quickTool, setQuickTool] = useState<WellnessTool | null>(null);
   const [xp, setXp] = useState<number>(0);
 
+  // Account & Notifications State
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [alerts, setAlerts] = useState<AlertEntry[]>([
+    {
+      id: 'init-1',
+      title: 'Welcome to 🌸',
+      detail: 'All user status, XP, water, and activity alerts are saved automatically.',
+      time: 'Now',
+      read: false,
+    },
+  ]);
+
   // Theme & Nutrition Guide State
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [nutritionOpen, setNutritionOpen] = useState(false);
@@ -142,9 +164,35 @@ export default function HomePage() {
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [guideLevel, setGuideLevel] = useState<LevelKey | null>(null);
 
-  // Set Tab Title to 🌸 & Load Saved Preferences
+  const pushAlert = (title: string, detail: string) => {
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setAlerts((prev) => [
+      { id: `${Date.now()}-${Math.random()}`, title, detail, time: nowTime, read: false },
+      ...prev.slice(0, 29),
+    ]);
+  };
+
   useEffect(() => {
     document.title = '🌸';
+
+    const activeName = localStorage.getItem('flower_active_user');
+    if (activeName) {
+      const db = loadUsersDb();
+      const prof = db[activeName.toLowerCase()];
+      if (prof) {
+        setCurrentUser(prof.username);
+        setXp(prof.xp || 0);
+        setStreak(prof.streak || 1);
+        setWaterGlasses(prof.water || 0);
+        setFavoriteIds(prof.favorites || []);
+        if (prof.alerts?.length) setAlerts(prof.alerts);
+        if (prof.theme) {
+          setTheme(prof.theme);
+          document.documentElement.setAttribute('data-theme', prof.theme);
+        }
+        return;
+      }
+    }
 
     const savedTheme = localStorage.getItem('flower_theme') as 'dark' | 'light' | null;
     if (savedTheme) {
@@ -188,11 +236,28 @@ export default function HomePage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!currentUser) return;
+    const db = loadUsersDb();
+    const existing = db[currentUser.toLowerCase()];
+    saveUserProfile({
+      username: currentUser,
+      email: existing?.email || '',
+      xp,
+      streak,
+      water: waterGlasses,
+      favorites: favoriteIds,
+      theme,
+      alerts,
+    });
+  }, [currentUser, xp, streak, waterGlasses, favoriteIds, theme, alerts]);
+
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     localStorage.setItem('flower_theme', next);
     document.documentElement.setAttribute('data-theme', next);
+    pushAlert('Theme Switched', `Switched to ${next === 'dark' ? 'Dark' : 'Light'} mode.`);
   };
 
   useEffect(() => {
@@ -203,10 +268,11 @@ export default function HomePage() {
     return () => clearInterval(t);
   }, [breathOn]);
 
-  const earnXp = (pts: number) => {
+  const earnXp = (pts: number, title?: string) => {
     setXp((prev) => {
       const next = prev + pts;
       localStorage.setItem('fitlife_xp', String(next));
+      pushAlert('XP Earned', `${title ? `${title}: ` : ''}+${pts} XP (Total: ${next} XP)`);
       return next;
     });
   };
@@ -215,13 +281,21 @@ export default function HomePage() {
     const clamped = Math.max(0, Math.min(16, nextVal));
     setWaterGlasses(clamped);
     localStorage.setItem('fitlife_water', String(clamped));
-    if (clamped > waterGlasses) earnXp(5);
+    if (clamped > waterGlasses) {
+      earnXp(5, 'Hydration');
+      pushAlert('Water Logged', `Glass #${clamped} (${(clamped * 0.25).toFixed(2)} L)`);
+    }
   };
 
-  const toggleFavorite = (id: string) => {
+  const toggleFavorite = (id: string, name?: string) => {
     setFavoriteIds((prev) => {
-      const updated = prev.includes(id) ? prev.filter((x) => x !== id) : [id, ...prev];
+      const exists = prev.includes(id);
+      const updated = exists ? prev.filter((x) => x !== id) : [id, ...prev];
       localStorage.setItem('fitlife_favorites', JSON.stringify(updated));
+      pushAlert(
+        exists ? 'Removed Favorite' : 'Saved Favorite',
+        name ? `${name} ${exists ? 'removed from' : 'added to'} Saved Moves.` : 'Updated Saved Moves.'
+      );
       return updated;
     });
   };
@@ -231,6 +305,7 @@ export default function HomePage() {
     const pick = exercises[Math.floor(Math.random() * exercises.length)];
     setActiveExercise(pick);
     setIsGuidedMode(false);
+    pushAlert('Random Pick', `Selected ${pick.name}`);
   };
 
   useEffect(() => {
@@ -359,7 +434,6 @@ export default function HomePage() {
       {/* STICKY NAVIGATION BAR */}
       <nav className="sticky top-0 z-40 border-b border-white/10 bg-[var(--bg-nav)] backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          {/* Site Name: Flower Emoji Only */}
           <button
             onClick={() => setActiveNav('home')}
             title="Home"
@@ -403,7 +477,22 @@ export default function HomePage() {
               );
             })}
 
-            {/* Light / Dark Theme Toggle */}
+            <NotificationBell
+              alerts={alerts}
+              onMarkAllRead={() =>
+                setAlerts((prev) => prev.map((a) => ({ ...a, read: true })))
+              }
+              onClearAll={() => setAlerts([])}
+            />
+
+            <button
+              onClick={() => setAuthOpen(true)}
+              className="matte-pill flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-sky-400 transition hover:scale-105"
+            >
+              <User className="h-3.5 w-3.5" />
+              {currentUser ? currentUser : 'Login'}
+            </button>
+
             <button
               onClick={toggleTheme}
               title="Switch Light / Dark Theme"
@@ -495,7 +584,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* 2. DAILY ESSENTIALS: WATER + CALM BREATH + SURPRISE WORKOUT */}
+          {/* 2. DAILY ESSENTIALS */}
           <section className="grid gap-3.5 md:grid-cols-3">
             <div className="matte-box-soft flex flex-col justify-between rounded-2xl p-4">
               <div className="flex items-center justify-between">
@@ -586,7 +675,10 @@ export default function HomePage() {
                   return (
                     <button
                       key={key}
-                      onClick={() => setMood(key)}
+                      onClick={() => {
+                        setMood(key);
+                        pushAlert('Mood Logged', `Feeling ${m.label.toLowerCase()} today.`);
+                      }}
                       className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
                         mood === key
                           ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white'
@@ -651,7 +743,7 @@ export default function HomePage() {
             </section>
           )}
 
-          {/* 5. MAIN ACTION BANNER + GAIN CALORIES & PROTEIN BUTTON */}
+          {/* 5. MAIN ACTION BANNER */}
           <section className="matte-box rounded-3xl p-6">
             <div className="flex flex-wrap items-center justify-between gap-5">
               <div>
@@ -809,9 +901,7 @@ export default function HomePage() {
 
           {exerciseStep === 1 && (
             <div className="matte-box mx-auto max-w-3xl rounded-3xl p-6">
-              <h2 className="text-center text-2xl font-extrabold text-white">
-                Select Body Part
-              </h2>
+              <h2 className="text-center text-2xl font-extrabold text-white">Select Body Part</h2>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
                 {BODY_PART_CATEGORIES.map((bp) => {
@@ -881,9 +971,7 @@ export default function HomePage() {
 
           {exerciseStep === 2 && (
             <div className="matte-box mx-auto max-w-3xl rounded-3xl p-6">
-              <h2 className="text-center text-2xl font-extrabold text-white">
-                Goal &amp; Time
-              </h2>
+              <h2 className="text-center text-2xl font-extrabold text-white">Goal &amp; Time</h2>
 
               <div className="mt-6">
                 <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-pink-400">
@@ -986,14 +1074,14 @@ export default function HomePage() {
                         setVisibleCount(24);
                       }}
                       placeholder="Search exercises..."
-                      className="w-full rounded-xl border border-sky-500/20 bg-[var(--bg-input)] py-2 pl-9 pr-3 text-xs font-semibold text-white outline-none placeholder:text-slate-500 focus:border-sky-400"
+                      className="w-full rounded-xl border border-sky-500/25 bg-[var(--bg-input)] py-2 pl-9 pr-3 text-xs font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-sky-400"
                     />
                   </div>
 
                   <select
                     value={selectedAge}
                     onChange={(e) => setSelectedAge(e.target.value)}
-                    className="rounded-xl border border-sky-500/20 bg-[var(--bg-input)] px-3 py-2 text-xs font-bold text-slate-200 outline-none"
+                    className="rounded-xl border border-sky-500/25 bg-[var(--bg-input)] px-3 py-2 text-xs font-bold text-[var(--text-primary)] outline-none"
                   >
                     {AGE_GROUPS.map((g) => (
                       <option key={g.id} value={g.id}>
@@ -1002,7 +1090,7 @@ export default function HomePage() {
                     ))}
                   </select>
 
-                  <div className="flex gap-1 rounded-xl border border-sky-500/20 bg-[var(--bg-input)] p-1">
+                  <div className="flex gap-1 rounded-xl border border-sky-500/25 bg-[var(--bg-input)] p-1">
                     {['All', 'Male', 'Female'].map((gen) => (
                       <button
                         key={gen}
@@ -1060,7 +1148,7 @@ export default function HomePage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleFavorite(ex.id);
+                                toggleFavorite(ex.id, ex.name);
                               }}
                               title="Save Favorite"
                               className="absolute left-2.5 top-2.5 rounded-full bg-black/75 p-1.5 backdrop-blur transition hover:scale-110"
@@ -1090,9 +1178,7 @@ export default function HomePage() {
                             <h3 className="mt-2 text-base font-extrabold text-white group-hover:text-sky-400">
                               {ex.name}
                             </h3>
-                            <p className="mt-1 text-[11px] text-slate-400">
-                              {ex.sets_reps}
-                            </p>
+                            <p className="mt-1 text-[11px] text-slate-400">{ex.sets_reps}</p>
                           </div>
                         </div>
                       );
@@ -1128,7 +1214,7 @@ export default function HomePage() {
       )}
 
       {/* =========================================================
-          PAGE 5: ABOUT (ANIMATED DEDICATION ONLY)
+          PAGE 5: ABOUT
          ========================================================= */}
       {activeNav === 'about' && (
         <section className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center px-4 py-12">
@@ -1160,7 +1246,7 @@ export default function HomePage() {
           <div className="matte-box relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl p-5 shadow-2xl">
             <div className="absolute right-4 top-4 flex items-center gap-1.5">
               <button
-                onClick={() => toggleFavorite(activeExercise.id)}
+                onClick={() => toggleFavorite(activeExercise.id, activeExercise.name)}
                 title="Save Favorite"
                 className="rounded-xl bg-white/10 p-1.5 hover:bg-white/20"
               >
@@ -1194,7 +1280,7 @@ export default function HomePage() {
                   exercise={activeExercise}
                   onExit={() => {
                     setIsGuidedMode(false);
-                    earnXp(50);
+                    earnXp(50, activeExercise.name);
                   }}
                 />
               </div>
@@ -1207,7 +1293,10 @@ export default function HomePage() {
                 />
 
                 <button
-                  onClick={() => setIsGuidedMode(true)}
+                  onClick={() => {
+                    setIsGuidedMode(true);
+                    pushAlert('Workout Started', `Started ${activeExercise.name}`);
+                  }}
                   className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 py-3 text-xs font-extrabold text-white shadow-md hover:brightness-110"
                 >
                   <Play className="h-3.5 w-3.5 fill-white" /> Start Exercise
@@ -1271,12 +1360,41 @@ export default function HomePage() {
         </div>
       )}
 
-      <NutritionGainModal open={nutritionOpen} onClose={() => setNutritionOpen(false)} />
+      <NutritionGainModal
+        open={nutritionOpen}
+        onClose={() => {
+          setNutritionOpen(false);
+          pushAlert('Nutrition Checked', 'Reviewed calories & protein combinations.');
+        }}
+      />
+
       <InteractiveToolModal
         tool={quickTool}
         onClose={() => setQuickTool(null)}
         onEarnXp={earnXp}
       />
+
+      <AuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        currentUser={currentUser}
+        onLoginSuccess={(prof: UserProfileData) => {
+          setCurrentUser(prof.username);
+          setXp(prof.xp);
+          setStreak(prof.streak);
+          setWaterGlasses(prof.water);
+          setFavoriteIds(prof.favorites);
+          setTheme(prof.theme);
+          setAlerts(prof.alerts);
+          document.documentElement.setAttribute('data-theme', prof.theme);
+        }}
+        onLogout={() => {
+          localStorage.removeItem('flower_active_user');
+          setCurrentUser(null);
+          pushAlert('Signed Out', 'You signed out of your account.');
+        }}
+      />
+
       <LevelGuideModal selectedLevel={guideLevel} onClose={() => setGuideLevel(null)} />
       <BloomCoach />
     </main>
