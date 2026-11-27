@@ -27,6 +27,8 @@ import {
   Calendar,
   CheckCircle2,
   Play,
+  Layers,
+  Trophy,
 } from 'lucide-react';
 import { supabase, Exercise } from '@/lib/supabase';
 import { AGE_GROUPS, LevelKey } from '@/lib/data';
@@ -38,18 +40,23 @@ import {
   matchesTargetGoal,
   matchesTimeOfDay,
 } from '@/lib/exerciseFilters';
+import { WELLNESS_TOOLS, TOOL_CATEGORIES, ToolCategory, WellnessTool } from '@/lib/wellnessToolsData';
 import LevelGuideModal from '@/components/LevelGuideModal';
 import BloomCoach from '@/components/BloomCoach';
 import ExerciseAnimator from '@/components/ExerciseAnimator';
 import MaintainerView from '@/components/MaintainerView';
 import GuidedExercisePlayer from '@/components/GuidedExercisePlayer';
+import WellnessStudioHub, { InteractiveToolModal } from '@/components/WellnessStudioHub';
 
-type NavTab = 'home' | 'maintainer' | 'exercises' | 'about';
+type NavTab = 'home' | 'maintainer' | 'exercises' | 'studio' | 'about';
 type ExerciseStep = 1 | 2 | 3;
 
 export default function HomePage() {
   const [activeNav, setActiveNav] = useState<NavTab>('home');
   const [exerciseStep, setExerciseStep] = useState<ExerciseStep>(1);
+  const [studioCategory, setStudioCategory] = useState<ToolCategory>('All');
+  const [quickTool, setQuickTool] = useState<WellnessTool | null>(null);
+  const [xp, setXp] = useState<number>(0);
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +75,19 @@ export default function HomePage() {
   const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [guideLevel, setGuideLevel] = useState<LevelKey | null>(null);
+
+  useEffect(() => {
+    const savedXp = localStorage.getItem('fitlife_xp');
+    if (savedXp) setXp(Number(savedXp));
+  }, []);
+
+  const earnXp = (pts: number) => {
+    setXp((prev) => {
+      const next = prev + pts;
+      localStorage.setItem('fitlife_xp', String(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     const fetchAllExercises = async () => {
@@ -165,9 +185,18 @@ export default function HomePage() {
     setExerciseStep(1);
   };
 
+  // 12 Featured Quick Tools for Homepage
+  const featuredQuickTools = useMemo(
+    () =>
+      [1, 16, 17, 18, 28, 35, 36, 42, 43, 58, 69, 92]
+        .map((id) => WELLNESS_TOOLS.find((t) => t.id === id))
+        .filter(Boolean) as WellnessTool[],
+    []
+  );
+
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-sky-100 via-indigo-50/70 to-pink-50/80 text-slate-800">
-      {/* Decorative Ambient Background Orbs (Consistent Across All Pages) */}
+      {/* Decorative Ambient Background Orbs */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-sky-300/35 blur-3xl" />
         <div className="absolute right-0 top-1/4 h-[28rem] w-[28rem] rounded-full bg-violet-300/30 blur-3xl" />
@@ -203,6 +232,7 @@ export default function HomePage() {
               { id: 'home', label: 'Home', icon: Home },
               { id: 'maintainer', label: 'Maintainer', icon: HeartPulse },
               { id: 'exercises', label: 'All Exercises', icon: Dumbbell },
+              { id: 'studio', label: '99+ Tools', icon: Layers, badge: '99' },
               { id: 'about', label: 'About', icon: Info },
             ].map((item) => {
               const Icon = item.icon;
@@ -213,6 +243,9 @@ export default function HomePage() {
                   onClick={() => {
                     if (item.id === 'exercises') {
                       openExercisesWizard();
+                    } else if (item.id === 'studio') {
+                      setStudioCategory('All');
+                      setActiveNav('studio');
                     } else {
                       setActiveNav(item.id as NavTab);
                     }
@@ -225,6 +258,15 @@ export default function HomePage() {
                 >
                   <Icon className="h-3.5 w-3.5" />
                   {item.label}
+                  {item.badge && (
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[9px] font-black ${
+                        isActive ? 'bg-white text-indigo-600' : 'bg-pink-100 text-rose-600'
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -240,10 +282,15 @@ export default function HomePage() {
           <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-gradient-to-br from-white/90 via-sky-50/85 to-indigo-50/85 p-8 shadow-[10px_10px_0px_0px_#bae6fd] backdrop-blur-xl sm:p-12">
             <div className="grid items-center gap-10 lg:grid-cols-12">
               <div className="lg:col-span-7">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-sky-100 via-indigo-100 to-pink-100 px-4 py-1.5 text-xs font-extrabold text-indigo-700 ring-1 ring-indigo-200/80">
-                  <Sparkles className="h-3.5 w-3.5 text-sky-500" />
-                  All-in-One Digital Fitness &amp; Body Care
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-sky-100 via-indigo-100 to-pink-100 px-4 py-1.5 text-xs font-extrabold text-indigo-700 ring-1 ring-indigo-200/80">
+                    <Sparkles className="h-3.5 w-3.5 text-sky-500" />
+                    99+ Interactive Health &amp; Workout Features
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-black text-amber-800">
+                    <Trophy className="h-3.5 w-3.5 text-amber-600" /> {xp} XP
+                  </span>
+                </div>
 
                 <h2 className="mt-5 text-4xl font-black leading-[1.12] tracking-tight text-slate-900 sm:text-5xl">
                   Move Better. <br />
@@ -254,7 +301,7 @@ export default function HomePage() {
                 </h2>
 
                 <p className="mt-5 max-w-xl text-base font-medium leading-relaxed text-slate-600">
-                  A lovely, stress-free wellness space designed for the whole family—featuring live animated form, hourly body maintenance, trusted level guides, and your personal 🥷 &amp; 🌸 AI Coaches.
+                  A lovely, stress-free wellness space designed for the whole family—featuring live animated form, hourly body maintenance, 99+ calculators &amp; timers, and your personal 🥷 &amp; 🌸 AI Coaches.
                 </p>
 
                 <div className="mt-8 flex flex-wrap gap-3.5">
@@ -265,10 +312,16 @@ export default function HomePage() {
                     Explore All Exercises <ArrowRight className="h-4 w-4" />
                   </button>
                   <button
+                    onClick={() => setActiveNav('studio')}
+                    className="flex items-center gap-2 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-50 px-6 py-3.5 text-sm font-extrabold text-indigo-700 shadow-[5px_5px_0px_0px_#c7d2fe] transition-all hover:-translate-y-0.5 hover:brightness-105"
+                  >
+                    <Layers className="h-4 w-4" /> Open 99+ Tools Studio
+                  </button>
+                  <button
                     onClick={() => setActiveNav('maintainer')}
                     className="flex items-center gap-2 rounded-2xl border border-pink-200 bg-gradient-to-r from-pink-50 to-rose-50 px-6 py-3.5 text-sm font-extrabold text-rose-600 shadow-[5px_5px_0px_0px_#fbcfe8] transition-all hover:-translate-y-0.5 hover:brightness-105"
                   >
-                    <HeartPulse className="h-4 w-4" /> Open Maintainer Hub
+                    <HeartPulse className="h-4 w-4" /> Maintainer Hub
                   </button>
                 </div>
               </div>
@@ -283,15 +336,21 @@ export default function HomePage() {
                   </div>
 
                   <div className="mt-6 grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl bg-white/15 p-4 backdrop-blur-md">
+                    <div
+                      onClick={() => setActiveNav('maintainer')}
+                      className="cursor-pointer rounded-2xl bg-white/15 p-4 backdrop-blur-md transition hover:bg-white/25"
+                    >
                       <Droplets className="h-5 w-5 text-cyan-200" />
                       <p className="mt-2 text-xs font-medium text-sky-100">Hydration</p>
                       <p className="text-lg font-black">Hourly Sync</p>
                     </div>
-                    <div className="rounded-2xl bg-white/15 p-4 backdrop-blur-md">
+                    <div
+                      onClick={() => setActiveNav('studio')}
+                      className="cursor-pointer rounded-2xl bg-white/15 p-4 backdrop-blur-md transition hover:bg-white/25"
+                    >
                       <Flame className="h-5 w-5 text-amber-200" />
-                      <p className="mt-2 text-xs font-medium text-sky-100">Energy &amp; BMI</p>
-                      <p className="text-lg font-black">Auto-Calc</p>
+                      <p className="mt-2 text-xs font-medium text-sky-100">99+ Calculators</p>
+                      <p className="text-lg font-black">1RM • BMI • HIIT</p>
                     </div>
                     <div className="col-span-2 flex items-center justify-between rounded-2xl bg-white/20 p-4 backdrop-blur-md">
                       <div>
@@ -305,6 +364,87 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* 12 INSTANT HEALTH & WORKOUT QUICK-LAUNCH WIDGETS */}
+          <section className="space-y-5">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-indigo-600">
+                  Instant Interactive Widgets
+                </p>
+                <h3 className="mt-1 text-2xl font-black text-slate-900">
+                  Quick Health &amp; Workout Tools
+                </h3>
+              </div>
+              <button
+                onClick={() => setActiveNav('studio')}
+                className="text-xs font-extrabold text-sky-600 hover:underline"
+              >
+                Explore all 99 tools →
+              </button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {featuredQuickTools.map((tool) => (
+                <button
+                  key={tool.id}
+                  onClick={() => setQuickTool(tool)}
+                  className="group flex items-start gap-3 rounded-2xl border border-white bg-white/90 p-4 text-left shadow-[5px_5px_0px_0px_#bae6fd] transition-all hover:-translate-y-1 hover:shadow-[7px_7px_0px_0px_#7dd3fc]"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-lg">
+                    {tool.emoji}
+                  </span>
+                  <div>
+                    <p className="text-xs font-black text-slate-900 group-hover:text-sky-600">
+                      {tool.title}
+                    </p>
+                    <p className="mt-0.5 line-clamp-2 text-[11px] font-medium text-slate-500">
+                      {tool.tagline}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* 8 CATEGORIES OF THE 99+ STUDIO */}
+          <section className="rounded-[2rem] border border-white bg-white/85 p-7 shadow-[8px_8px_0px_0px_#c7d2fe] backdrop-blur-xl">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-rose-600">
+                  8 Wellness Categories
+                </p>
+                <h3 className="mt-1 text-2xl font-black text-slate-900">
+                  Browse All 99 Health &amp; Fitness Features
+                </h3>
+              </div>
+              <button
+                onClick={() => setActiveNav('studio')}
+                className="rounded-xl bg-sky-500 px-4 py-2 text-xs font-extrabold text-white shadow-[3px_3px_0px_0px_#bae6fd] hover:bg-sky-600"
+              >
+                Open Full 99+ Directory
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+              {TOOL_CATEGORIES.filter((c) => c.id !== 'All').map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => {
+                    setStudioCategory(c.id);
+                    setActiveNav('studio');
+                  }}
+                  className="flex items-center gap-3 rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50/80 to-indigo-50/80 p-4 text-left transition hover:-translate-y-0.5 hover:border-sky-300"
+                >
+                  <span className="text-2xl">{c.emoji}</span>
+                  <div>
+                    <p className="text-xs font-black text-slate-900">{c.label}</p>
+                    <p className="text-[10px] font-bold text-sky-600">Click to launch →</p>
+                  </div>
+                </button>
+              ))}
             </div>
           </section>
 
@@ -480,7 +620,6 @@ export default function HomePage() {
          ========================================================= */}
       {activeNav === 'exercises' && (
         <section className="mx-auto max-w-6xl px-4 py-10">
-          {/* Step Indicator Bar */}
           <div className="mb-8 flex flex-wrap items-center justify-center gap-3">
             {[
               { step: 1 as ExerciseStep, label: '1. Body Part' },
@@ -503,7 +642,6 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* STEP 1: CHOOSE BODY PART (+ A-Z MUSCLES) */}
           {exerciseStep === 1 && (
             <div className="mx-auto max-w-4xl rounded-[2rem] border border-white bg-white/90 p-8 shadow-[10px_10px_0px_0px_#bae6fd] backdrop-blur-xl">
               <div className="text-center">
@@ -553,7 +691,6 @@ export default function HomePage() {
                 })}
               </div>
 
-              {/* A-Z Specific Muscle Sub-Picker */}
               {activeBodyGroup && activeBodyGroup.muscles.length > 1 && (
                 <div className="mt-8 rounded-3xl border border-indigo-100 bg-indigo-50/60 p-5">
                   <p className="text-xs font-black uppercase tracking-wider text-indigo-700">
@@ -604,7 +741,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* STEP 2: CHOOSE TARGET GOAL & TIME OF DAY */}
           {exerciseStep === 2 && (
             <div className="mx-auto max-w-4xl rounded-[2rem] border border-white bg-white/90 p-8 shadow-[10px_10px_0px_0px_#fbcfe8] backdrop-blur-xl">
               <div className="text-center">
@@ -692,7 +828,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* STEP 3: SHOW MATCHING EXERCISES */}
           {exerciseStep === 3 && (
             <div>
               <div className="rounded-3xl border border-white bg-white/90 p-5 shadow-[8px_8px_0px_0px_#bae6fd] backdrop-blur-xl">
@@ -863,7 +998,18 @@ export default function HomePage() {
       )}
 
       {/* =========================================================
-          PAGE 4: ABOUT (SMOOTH COLORFUL OVERVIEW)
+          PAGE 4: 99+ WELLNESS & WORKOUT STUDIO HUB
+         ========================================================= */}
+      {activeNav === 'studio' && (
+        <WellnessStudioHub
+          xp={xp}
+          onEarnXp={earnXp}
+          initialCategory={studioCategory}
+        />
+      )}
+
+      {/* =========================================================
+          PAGE 5: ABOUT (SMOOTH COLORFUL OVERVIEW)
          ========================================================= */}
       {activeNav === 'about' && (
         <section className="mx-auto max-w-4xl space-y-8 px-4 py-12">
@@ -875,7 +1021,7 @@ export default function HomePage() {
               One Lovely Fitness Standard for Every Generation
             </h2>
             <p className="mt-4 text-sm font-medium leading-relaxed text-slate-600">
-              FitLife 0–90 was crafted to make daily fitness and body care simple, colorful, and welcoming. Whether it is supervised motor play for infants, athletic foundations for teens, full strength training for adults, or safe chair-assisted mobility for seniors, every movement is organized cleanly by body part, A–Z muscle, goal, time of day, and age.
+              FitLife 0–90 brings together guided exercises, 99+ interactive health &amp; workout calculators, live breathing/interval timers, hourly body maintenance, and dual AI coaches in one calm, colorful interface.
             </p>
 
             <div className="mt-8 grid gap-5 sm:grid-cols-2">
@@ -886,9 +1032,9 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="rounded-3xl border border-pink-100 bg-gradient-to-br from-pink-50 to-rose-50 p-6 shadow-[5px_5px_0px_0px_#fbcfe8]">
-                <h3 className="text-base font-black text-rose-900">⚡ Body Maintainer</h3>
+                <h3 className="text-base font-black text-rose-900">✨ 99+ Tools &amp; Maintainer</h3>
                 <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
-                  Track BMI, daily calories, macros, water intake, hourly body requirements, and real-time reminders in one place.
+                  Track BMI, 1RM, macros, water intake, sleep cycles, posture resets, and hourly body needs in one place.
                 </p>
               </div>
             </div>
@@ -896,7 +1042,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Exercise Details + Full Description + "Start This Exercise" Guided Mode */}
+      {/* Exercise Details + Guided Mode Modal */}
       {activeExercise && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm">
           <div className="relative max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-white bg-white p-6 text-slate-800 shadow-[10px_10px_0px_0px_#bae6fd]">
@@ -919,7 +1065,10 @@ export default function HomePage() {
               <div className="mt-4">
                 <GuidedExercisePlayer
                   exercise={activeExercise}
-                  onExit={() => setIsGuidedMode(false)}
+                  onExit={() => {
+                    setIsGuidedMode(false);
+                    earnXp(50);
+                  }}
                 />
               </div>
             ) : (
@@ -930,7 +1079,6 @@ export default function HomePage() {
                   frame2={activeExercise.media_url_2}
                 />
 
-                {/* BIG START THIS EXERCISE BUTTON */}
                 <button
                   onClick={() => setIsGuidedMode(true)}
                   className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 py-3.5 text-sm font-black text-white shadow-[5px_5px_0px_0px_#bae6fd] transition hover:-translate-y-0.5 hover:brightness-105"
@@ -938,7 +1086,6 @@ export default function HomePage() {
                   <Play className="h-4 w-4 fill-white" /> Start This Exercise (Live Guide &amp; Counter)
                 </button>
 
-                {/* FULL LONG DESCRIPTION */}
                 {activeExercise.long_description && (
                   <div className="mt-5 rounded-2xl border border-sky-100 bg-sky-50/50 p-4">
                     <h3 className="text-xs font-black uppercase tracking-wider text-sky-700">
@@ -950,7 +1097,6 @@ export default function HomePage() {
                   </div>
                 )}
 
-                {/* WHAT YOU WILL GET (BENEFITS) */}
                 {activeExercise.benefits && activeExercise.benefits.length > 0 && (
                   <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
                     <h3 className="text-xs font-black uppercase tracking-wider text-indigo-700">
@@ -967,7 +1113,6 @@ export default function HomePage() {
                   </div>
                 )}
 
-                {/* HOW MANY DAYS IT TAKES TO SEE RESULTS */}
                 {activeExercise.results_timeline && (
                   <div className="mt-4 rounded-2xl border border-pink-100 bg-pink-50/60 p-4">
                     <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-rose-700">
@@ -998,6 +1143,13 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      {/* Quick Tool Modal from Homepage */}
+      <InteractiveToolModal
+        tool={quickTool}
+        onClose={() => setQuickTool(null)}
+        onEarnXp={earnXp}
+      />
 
       <LevelGuideModal selectedLevel={guideLevel} onClose={() => setGuideLevel(null)} />
       <BloomCoach />
