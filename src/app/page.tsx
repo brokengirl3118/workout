@@ -17,7 +17,6 @@ import {
   Activity,
   Droplets,
   Flame,
-  Sun,
   Star,
   Baby,
   Smile,
@@ -28,6 +27,11 @@ import {
   Play,
   Layers,
   Trophy,
+  Heart,
+  Shuffle,
+  Wind,
+  Plus,
+  Minus,
 } from 'lucide-react';
 import { supabase, Exercise } from '@/lib/supabase';
 import { AGE_GROUPS, LevelKey } from '@/lib/data';
@@ -50,6 +54,7 @@ import WelcomeSplash from '@/components/WelcomeSplash';
 
 type NavTab = 'home' | 'maintainer' | 'exercises' | 'tools' | 'about';
 type ExerciseStep = 1 | 2 | 3;
+type MoodKey = 'energetic' | 'tired' | 'stressed' | 'sore';
 
 const SHORT_CAT_NAMES: Record<ToolCategory, string> = {
   All: 'All',
@@ -63,6 +68,40 @@ const SHORT_CAT_NAMES: Record<ToolCategory, string> = {
   'Habits & Family': 'Habits',
 };
 
+const MOOD_PRESETS: Record<
+  MoodKey,
+  { label: string; emoji: string; tip: string; actionLabel: string; toolId: number }
+> = {
+  energetic: {
+    label: 'Energetic',
+    emoji: '⚡',
+    tip: 'Channel that energy into a 4-minute Tabata blast.',
+    actionLabel: 'Start Tabata',
+    toolId: 16,
+  },
+  tired: {
+    label: 'Low Energy',
+    emoji: '🔋',
+    tip: 'Take 1 glass of water + a 5-minute spine wake-up.',
+    actionLabel: 'Spine Wake-Up',
+    toolId: 74,
+  },
+  stressed: {
+    label: 'Stressed',
+    emoji: '🌿',
+    tip: 'Reset your heart rate with 4-4-4-4 Box Breathing.',
+    actionLabel: 'Breathe Now',
+    toolId: 18,
+  },
+  sore: {
+    label: 'Sore',
+    emoji: '🧊',
+    tip: 'Follow the gentle DOMS relief flow to recover faster.',
+    actionLabel: 'Recovery Flow',
+    toolId: 85,
+  },
+};
+
 export default function HomePage() {
   const [activeNav, setActiveNav] = useState<NavTab>('home');
   const [exerciseStep, setExerciseStep] = useState<ExerciseStep>(1);
@@ -70,6 +109,15 @@ export default function HomePage() {
   const [quickTool, setQuickTool] = useState<WellnessTool | null>(null);
   const [xp, setXp] = useState<number>(0);
 
+  // New User-Favorite Home Features State
+  const [streak, setStreak] = useState<number>(1);
+  const [mood, setMood] = useState<MoodKey | null>(null);
+  const [waterGlasses, setWaterGlasses] = useState<number>(0);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [breathOn, setBreathOn] = useState<boolean>(false);
+  const [breathTick, setBreathTick] = useState<number>(0);
+
+  // Exercises State
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
@@ -88,10 +136,53 @@ export default function HomePage() {
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [guideLevel, setGuideLevel] = useState<LevelKey | null>(null);
 
+  // Load saved XP, Water, Favorites & Daily Streak safely on client
   useEffect(() => {
     const savedXp = localStorage.getItem('fitlife_xp');
     if (savedXp) setXp(Number(savedXp));
+
+    const savedWater = localStorage.getItem('fitlife_water');
+    if (savedWater) setWaterGlasses(Number(savedWater));
+
+    const savedFavs = localStorage.getItem('fitlife_favorites');
+    if (savedFavs) {
+      try {
+        setFavoriteIds(JSON.parse(savedFavs));
+      } catch {
+        setFavoriteIds([]);
+      }
+    }
+
+    // Daily Streak Calculator
+    const today = new Date().toISOString().slice(0, 10);
+    const lastVisit = localStorage.getItem('fitlife_last_visit');
+    const savedStreak = Number(localStorage.getItem('fitlife_streak') || '0');
+
+    if (!lastVisit) {
+      setStreak(1);
+      localStorage.setItem('fitlife_streak', '1');
+      localStorage.setItem('fitlife_last_visit', today);
+    } else if (lastVisit === today) {
+      setStreak(Math.max(1, savedStreak));
+    } else {
+      const prev = new Date(lastVisit);
+      const now = new Date(today);
+      const diffDays = Math.round((now.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+      const nextStreak = diffDays === 1 ? savedStreak + 1 : 1;
+      setStreak(nextStreak);
+      localStorage.setItem('fitlife_streak', String(nextStreak));
+      localStorage.setItem('fitlife_last_visit', today);
+    }
   }, []);
+
+  // Live Mini Calm-Breath Timer
+  useEffect(() => {
+    if (!breathOn) return;
+    const t = setInterval(() => {
+      setBreathTick((prev) => (prev + 1) % 12);
+    }, 1000);
+    return () => clearInterval(t);
+  }, [breathOn]);
 
   const earnXp = (pts: number) => {
     setXp((prev) => {
@@ -99,6 +190,28 @@ export default function HomePage() {
       localStorage.setItem('fitlife_xp', String(next));
       return next;
     });
+  };
+
+  const updateWater = (nextVal: number) => {
+    const clamped = Math.max(0, Math.min(16, nextVal));
+    setWaterGlasses(clamped);
+    localStorage.setItem('fitlife_water', String(clamped));
+    if (clamped > waterGlasses) earnXp(5);
+  };
+
+  const toggleFavorite = (id: string) => {
+    setFavoriteIds((prev) => {
+      const updated = prev.includes(id) ? prev.filter((x) => x !== id) : [id, ...prev];
+      localStorage.setItem('fitlife_favorites', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const spinRandomExercise = () => {
+    if (exercises.length === 0) return;
+    const pick = exercises[Math.floor(Math.random() * exercises.length)];
+    setActiveExercise(pick);
+    setIsGuidedMode(false);
   };
 
   useEffect(() => {
@@ -133,6 +246,11 @@ export default function HomePage() {
   const activeBodyGroup = BODY_PART_CATEGORIES.find((b) => b.id === selectedBodyPart);
   const activeGoalObj = TARGET_GOALS.find((g) => g.id === selectedGoal);
   const activeTimeObj = TIME_OF_DAY_OPTIONS.find((t) => t.id === selectedTime);
+
+  const favoriteExercises = useMemo(
+    () => exercises.filter((ex) => favoriteIds.includes(ex.id)).slice(0, 6),
+    [exercises, favoriteIds]
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -206,6 +324,15 @@ export default function HomePage() {
     []
   );
 
+  const breathPhase =
+    !breathOn
+      ? 'Tap to Relax'
+      : breathTick < 4
+      ? 'Inhale...'
+      : breathTick < 8
+      ? 'Hold...'
+      : 'Exhale...';
+
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#060609] text-slate-100">
       <WelcomeSplash />
@@ -274,162 +401,25 @@ export default function HomePage() {
       </nav>
 
       {/* =========================================================
-          PAGE 1: HOME
+          PAGE 1: HOME (AGE GROUPS AT TOP + USEFUL DAILY TOOLS)
          ========================================================= */}
       {activeNav === 'home' && (
-        <div className="mx-auto max-w-5xl space-y-8 px-4 py-8">
-          {/* Compact Hero Box */}
-          <section className="matte-box rounded-3xl p-6 sm:p-8">
-            <div className="grid items-center gap-6 lg:grid-cols-12">
-              <div className="lg:col-span-7">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-sky-500/15 px-3 py-1 text-xs font-bold text-sky-300">
-                    Welcome Harsh 🌸
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-300">
-                    <Trophy className="h-3 w-3" /> {xp} XP
-                  </span>
-                </div>
-
-                <h2 className="mt-4 text-3xl font-extrabold leading-tight text-white sm:text-4xl">
-                  Move Better.{' '}
-                  <span className="bg-gradient-to-r from-sky-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">
-                    Live Stronger.
-                  </span>
-                </h2>
-
-                <p className="mt-3 max-w-md text-xs font-medium leading-relaxed text-slate-300">
-                  Live animated workouts, daily body tracking, timers, and personal 🥷 &amp; 🌸 coaches for ages 0 to 90.
-                </p>
-
-                <div className="mt-6 flex flex-wrap gap-2.5">
-                  <button
-                    onClick={openExercisesWizard}
-                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-sky-500/20 transition hover:brightness-110"
-                  >
-                    Exercises <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setActiveNav('tools')}
-                    className="matte-pill flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-xs font-bold text-indigo-300 hover:text-white"
-                  >
-                    <Layers className="h-3.5 w-3.5" /> Health Tools
-                  </button>
-                  <button
-                    onClick={() => setActiveNav('maintainer')}
-                    className="matte-pill flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-xs font-bold text-pink-300 hover:text-white"
-                  >
-                    <HeartPulse className="h-3.5 w-3.5" /> Maintainer
-                  </button>
-                </div>
-              </div>
-
-              <div className="lg:col-span-5">
-                <div className="matte-box-soft rounded-2xl p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400">
-                      Daily Pulse
-                    </span>
-                    <Sun className="h-4 w-4 text-amber-400" />
-                  </div>
-
-                  <div className="mt-3.5 grid grid-cols-2 gap-2.5">
-                    <div
-                      onClick={() => setActiveNav('maintainer')}
-                      className="cursor-pointer rounded-xl border border-white/10 bg-white/[0.03] p-3 transition hover:bg-white/[0.07]"
-                    >
-                      <Droplets className="h-4 w-4 text-cyan-400" />
-                      <p className="mt-1.5 text-[11px] text-slate-400">Hydration</p>
-                      <p className="text-sm font-extrabold text-white">Hourly Sync</p>
-                    </div>
-                    <div
-                      onClick={() => setActiveNav('tools')}
-                      className="cursor-pointer rounded-xl border border-white/10 bg-white/[0.03] p-3 transition hover:bg-white/[0.07]"
-                    >
-                      <Flame className="h-4 w-4 text-pink-400" />
-                      <p className="mt-1.5 text-[11px] text-slate-400">Calculators</p>
-                      <p className="text-sm font-extrabold text-white">BMI • 1RM • HIIT</p>
-                    </div>
-                    <div className="col-span-2 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                      <div>
-                        <p className="text-[10px] text-slate-400">AI Coaches</p>
-                        <p className="text-xs font-extrabold text-white">🥷 Ninja &amp; 🌸 Bloom</p>
-                      </div>
-                      <span className="text-base">🌸</span>
-                    </div>
-                  </div>
-                </div>
+        <div className="mx-auto max-w-5xl space-y-7 px-4 py-7">
+          {/* 1. AGE GROUPS RIGHT AT THE TOP */}
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-extrabold text-white">Age Groups</h2>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-3 py-1 text-[11px] font-bold text-orange-300">
+                  <Flame className="h-3.5 w-3.5" /> {streak} Day Streak
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-3 py-1 text-[11px] font-bold text-amber-300">
+                  <Trophy className="h-3.5 w-3.5" /> {xp} XP
+                </span>
               </div>
             </div>
-          </section>
 
-          {/* Quick Tools Grid */}
-          <section className="space-y-3.5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-extrabold text-white">Quick Tools</h3>
-              <button
-                onClick={() => setActiveNav('tools')}
-                className="text-xs font-bold text-sky-400 hover:underline"
-              >
-                View All →
-              </button>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {featuredQuickTools.map((tool) => (
-                <button
-                  key={tool.id}
-                  onClick={() => setQuickTool(tool)}
-                  className="matte-box-soft group flex items-center gap-3 rounded-2xl p-3.5 text-left transition hover:-translate-y-0.5"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-base">
-                    {tool.emoji}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-extrabold text-white group-hover:text-sky-300">
-                      {tool.title}
-                    </p>
-                    <p className="truncate text-[11px] text-slate-400">{tool.tagline}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* Categories */}
-          <section className="matte-box rounded-3xl p-5 sm:p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-extrabold text-white">Tool Categories</h3>
-              <button
-                onClick={() => setActiveNav('tools')}
-                className="rounded-xl bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-300 hover:bg-sky-500/30"
-              >
-                Open Tools
-              </button>
-            </div>
-
-            <div className="mt-4 grid gap-2.5 sm:grid-cols-2 md:grid-cols-4">
-              {TOOL_CATEGORIES.filter((c) => c.id !== 'All').map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => {
-                    setToolCategory(c.id);
-                    setActiveNav('tools');
-                  }}
-                  className="matte-box-soft flex items-center gap-2.5 rounded-2xl p-3 text-left transition hover:-translate-y-0.5"
-                >
-                  <span className="text-xl">{c.emoji}</span>
-                  <p className="text-xs font-extrabold text-slate-100">{SHORT_CAT_NAMES[c.id]}</p>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* Age Groups */}
-          <section className="space-y-3.5">
-            <h3 className="text-lg font-extrabold text-white">Age Groups</h3>
-
-            <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 {
                   id: '0-2',
@@ -469,15 +459,15 @@ export default function HomePage() {
                   <div
                     key={card.id}
                     onClick={() => jumpToAge(card.id)}
-                    className="matte-box-soft group cursor-pointer rounded-2xl p-4 transition hover:-translate-y-1"
+                    className="matte-box group cursor-pointer rounded-2xl p-4 transition hover:-translate-y-1"
                   >
                     <div className="flex items-center justify-between">
                       <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${card.badge}`}>
                         {card.ages}
                       </span>
-                      <Icon className="h-4 w-4 text-slate-400 group-hover:text-white" />
+                      <Icon className="h-4 w-4 text-slate-300 group-hover:text-sky-300" />
                     </div>
-                    <h4 className="mt-3 text-base font-extrabold text-white">{card.title}</h4>
+                    <h3 className="mt-3 text-base font-extrabold text-white">{card.title}</h3>
                     <p className="mt-1 text-xs text-slate-400">{card.desc}</p>
                   </div>
                 );
@@ -485,56 +475,273 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* Core Features */}
-          <section className="grid gap-4 md:grid-cols-3">
-            <div
-              onClick={openExercisesWizard}
-              className="matte-box-soft group cursor-pointer rounded-2xl p-5 transition hover:-translate-y-1"
-            >
-              <PlayCircle className="h-6 w-6 text-sky-400" />
-              <h3 className="mt-3 text-base font-extrabold text-white group-hover:text-sky-300">
-                Live Form
-              </h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Animated poses, rep counter &amp; guided sets.
-              </p>
+          {/* 2. DAILY ESSENTIALS: WATER + CALM BREATH + SURPRISE WORKOUT */}
+          <section className="grid gap-3.5 md:grid-cols-3">
+            {/* Live Water Tracker */}
+            <div className="matte-box-soft flex flex-col justify-between rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-xs font-extrabold text-cyan-300">
+                  <Droplets className="h-4 w-4" /> Water Today
+                </span>
+                <span className="text-xs font-bold text-white">{waterGlasses} / 8</span>
+              </div>
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-sky-400 to-cyan-300 transition-all duration-300"
+                  style={{ width: `${Math.min(100, (waterGlasses / 8) * 100)}%` }}
+                />
+              </div>
+              <div className="mt-3.5 flex items-center justify-between gap-2">
+                <span className="text-[11px] text-slate-400">
+                  {(waterGlasses * 0.25).toFixed(2)} L drank
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => updateWater(waterGlasses - 1)}
+                    className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-slate-300 hover:bg-white/15"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => updateWater(waterGlasses + 1)}
+                    className="flex items-center gap-1 rounded-lg bg-sky-500 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-400"
+                  >
+                    <Plus className="h-3 w-3" /> Glass
+                  </button>
+                </div>
+              </div>
             </div>
 
+            {/* 1-Tap Calm Breathing Mini-Pacer */}
             <div
-              onClick={() => setActiveNav('maintainer')}
-              className="matte-box-soft group cursor-pointer rounded-2xl p-5 transition hover:-translate-y-1"
+              onClick={() => {
+                setBreathOn((v) => !v);
+                setBreathTick(0);
+              }}
+              className="matte-box-soft flex cursor-pointer items-center justify-between rounded-2xl p-4 transition hover:-translate-y-0.5"
             >
-              <Activity className="h-6 w-6 text-indigo-400" />
-              <h3 className="mt-3 text-base font-extrabold text-white group-hover:text-indigo-300">
-                Body Maintainer
-              </h3>
-              <p className="mt-1 text-xs text-slate-400">
-                BMI, macros, hourly needs &amp; alerts.
-              </p>
+              <div>
+                <span className="flex items-center gap-1.5 text-xs font-extrabold text-indigo-300">
+                  <Wind className="h-4 w-4" /> Calm Breath
+                </span>
+                <p className="mt-2 text-lg font-extrabold text-white">{breathPhase}</p>
+                <p className="mt-0.5 text-[11px] text-slate-400">
+                  {breathOn ? 'Tap to stop' : '4-4-4 instant reset'}
+                </p>
+              </div>
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-full border border-indigo-400/50 bg-indigo-500/20 text-indigo-300 transition-transform duration-1000 ${
+                  breathOn && breathTick < 8 ? 'scale-110 bg-sky-500/30' : 'scale-90'
+                }`}
+              >
+                <Wind className="h-5 w-5" />
+              </div>
             </div>
 
-            <div
-              onClick={() => setActiveNav('about')}
-              className="matte-box-soft group cursor-pointer rounded-2xl p-5 transition hover:-translate-y-1"
-            >
-              <Users className="h-6 w-6 text-pink-400" />
-              <h3 className="mt-3 text-base font-extrabold text-white group-hover:text-pink-300">
-                AI Coaches
-              </h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Switch between 🥷 Ninja &amp; 🌸 Bloom anytime.
+            {/* 1-Tap Surprise Workout Spinner */}
+            <div className="matte-box-soft flex flex-col justify-between rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-xs font-extrabold text-pink-300">
+                  <Shuffle className="h-4 w-4" /> Quick Pick
+                </span>
+                <span className="text-[11px] text-slate-400">Random Move</span>
+              </div>
+              <p className="mt-2 text-xs text-slate-300">
+                Not sure what to do? Spin a surprise exercise right now.
               </p>
+              <button
+                onClick={spinRandomExercise}
+                disabled={loading || exercises.length === 0}
+                className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 py-2 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+              >
+                <Shuffle className="h-3.5 w-3.5" /> Spin Exercise
+              </button>
             </div>
           </section>
 
-          {/* Level Guides */}
-          <section className="matte-box rounded-3xl p-5 sm:p-6">
+          {/* 3. MOOD CHECK-IN BAR */}
+          <section className="matte-box-soft rounded-2xl p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs font-extrabold text-white">How do you feel right now?</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(Object.keys(MOOD_PRESETS) as MoodKey[]).map((key) => {
+                  const m = MOOD_PRESETS[key];
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setMood(key)}
+                      className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                        mood === key
+                          ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white'
+                          : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                      }`}
+                    >
+                      {m.emoji} {m.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {mood && (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3">
+                <p className="text-xs text-sky-300">{MOOD_PRESETS[mood].tip}</p>
+                <button
+                  onClick={() => {
+                    const target = WELLNESS_TOOLS.find((t) => t.id === MOOD_PRESETS[mood].toolId);
+                    if (target) setQuickTool(target);
+                  }}
+                  className="rounded-lg bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-300 hover:bg-sky-500/30"
+                >
+                  {MOOD_PRESETS[mood].actionLabel} →
+                </button>
+              </div>
+            )}
+          </section>
+
+          {/* 4. SAVED FAVORITE EXERCISES (IF ANY BOOKMARKED) */}
+          {favoriteExercises.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="flex items-center gap-1.5 text-lg font-extrabold text-white">
+                  <Heart className="h-4 w-4 fill-pink-500 text-pink-500" /> Saved Moves
+                </h3>
+                <button
+                  onClick={openExercisesWizard}
+                  className="text-xs font-bold text-pink-400 hover:underline"
+                >
+                  Add More →
+                </button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                {favoriteExercises.map((ex) => (
+                  <div
+                    key={ex.id}
+                    onClick={() => {
+                      setActiveExercise(ex);
+                      setIsGuidedMode(false);
+                    }}
+                    className="matte-box-soft flex cursor-pointer items-center justify-between gap-2 rounded-2xl p-3.5 transition hover:-translate-y-0.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-extrabold text-white">{ex.name}</p>
+                      <p className="truncate text-[11px] text-sky-400">{ex.muscle_group}</p>
+                    </div>
+                    <PlayCircle className="h-5 w-5 shrink-0 text-pink-400" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 5. MAIN ACTION BANNER */}
+          <section className="matte-box rounded-3xl p-6">
+            <div className="flex flex-wrap items-center justify-between gap-5">
+              <div>
+                <h2 className="text-2xl font-extrabold text-white sm:text-3xl">
+                  Move Better.{' '}
+                  <span className="bg-gradient-to-r from-sky-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">
+                    Live Stronger.
+                  </span>
+                </h2>
+                <p className="mt-1.5 max-w-md text-xs text-slate-300">
+                  Animated workouts, daily body tracking, timers, and personal 🥷 &amp; 🌸 coaches.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2.5">
+                <button
+                  onClick={openExercisesWizard}
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-sky-500/20 transition hover:brightness-110"
+                >
+                  Exercises <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setActiveNav('tools')}
+                  className="matte-pill flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-xs font-bold text-indigo-300 hover:text-white"
+                >
+                  <Layers className="h-3.5 w-3.5" /> Health Tools
+                </button>
+                <button
+                  onClick={() => setActiveNav('maintainer')}
+                  className="matte-pill flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-xs font-bold text-pink-300 hover:text-white"
+                >
+                  <HeartPulse className="h-3.5 w-3.5" /> Maintainer
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* 6. QUICK TOOLS GRID */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-extrabold text-white">Quick Tools</h3>
+              <button
+                onClick={() => setActiveNav('tools')}
+                className="text-xs font-bold text-sky-400 hover:underline"
+              >
+                View All →
+              </button>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {featuredQuickTools.map((tool) => (
+                <button
+                  key={tool.id}
+                  onClick={() => setQuickTool(tool)}
+                  className="matte-box-soft group flex items-center gap-3 rounded-2xl p-3.5 text-left transition hover:-translate-y-0.5"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-base">
+                    {tool.emoji}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-extrabold text-white group-hover:text-sky-300">
+                      {tool.title}
+                    </p>
+                    <p className="truncate text-[11px] text-slate-400">{tool.tagline}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* 7. TOOL CATEGORIES */}
+          <section className="matte-box rounded-3xl p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-extrabold text-white">Categories</h3>
+              <button
+                onClick={() => setActiveNav('tools')}
+                className="rounded-xl bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-300 hover:bg-sky-500/30"
+              >
+                Open Tools
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-2.5 sm:grid-cols-2 md:grid-cols-4">
+              {TOOL_CATEGORIES.filter((c) => c.id !== 'All').map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => {
+                    setToolCategory(c.id);
+                    setActiveNav('tools');
+                  }}
+                  className="matte-box-soft flex items-center gap-2.5 rounded-2xl p-3 text-left transition hover:-translate-y-0.5"
+                >
+                  <span className="text-xl">{c.emoji}</span>
+                  <p className="text-xs font-extrabold text-slate-100">{SHORT_CAT_NAMES[c.id]}</p>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* 8. LEVEL GUIDES */}
+          <section className="matte-box rounded-3xl p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300">
                   <Star className="h-3.5 w-3.5" /> Level Plans
                 </span>
-                <h3 className="mt-1 text-lg font-extrabold text-white">Training Guides</h3>
+                <h3 className="mt-0.5 text-lg font-extrabold text-white">Training Guides</h3>
               </div>
               <div className="flex flex-wrap gap-2">
                 {(['Beginner', 'Intermediate', 'Advanced'] as LevelKey[]).map((lvl) => (
@@ -813,49 +1020,66 @@ export default function HomePage() {
               ) : (
                 <>
                   <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {visibleExercises.map((ex) => (
-                      <div
-                        key={ex.id}
-                        onClick={() => {
-                          setActiveExercise(ex);
-                          setIsGuidedMode(false);
-                        }}
-                        className="matte-box-soft group cursor-pointer overflow-hidden rounded-2xl transition duration-200 hover:-translate-y-1"
-                      >
-                        <div className="relative h-44 w-full overflow-hidden bg-black">
-                          {ex.media_url && (
-                            <img
-                              src={ex.media_url}
-                              alt={ex.name}
-                              loading="lazy"
-                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                            />
-                          )}
-                          <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-bold text-sky-300 backdrop-blur">
-                            <PlayCircle className="h-3 w-3" /> Live Form
+                    {visibleExercises.map((ex) => {
+                      const isFav = favoriteIds.includes(ex.id);
+                      return (
+                        <div
+                          key={ex.id}
+                          onClick={() => {
+                            setActiveExercise(ex);
+                            setIsGuidedMode(false);
+                          }}
+                          className="matte-box-soft group relative cursor-pointer overflow-hidden rounded-2xl transition duration-200 hover:-translate-y-1"
+                        >
+                          <div className="relative h-44 w-full overflow-hidden bg-black">
+                            {ex.media_url && (
+                              <img
+                                src={ex.media_url}
+                                alt={ex.name}
+                                loading="lazy"
+                                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                              />
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(ex.id);
+                              }}
+                              title="Save Favorite"
+                              className="absolute left-2.5 top-2.5 rounded-full bg-black/75 p-1.5 backdrop-blur transition hover:scale-110"
+                            >
+                              <Heart
+                                className={`h-3.5 w-3.5 ${
+                                  isFav ? 'fill-pink-500 text-pink-500' : 'text-slate-300'
+                                }`}
+                              />
+                            </button>
+                            <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-bold text-sky-300 backdrop-blur">
+                              <PlayCircle className="h-3 w-3" /> Live Form
+                            </div>
+                          </div>
+                          <div className="p-3.5">
+                            <div className="flex flex-wrap gap-1 text-[10px] font-bold">
+                              <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-sky-300">
+                                {ex.level}
+                              </span>
+                              <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-indigo-300">
+                                {ex.muscle_group}
+                              </span>
+                              <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-pink-300">
+                                {ex.equipment}
+                              </span>
+                            </div>
+                            <h3 className="mt-2 text-base font-extrabold text-white group-hover:text-sky-300">
+                              {ex.name}
+                            </h3>
+                            <p className="mt-1 text-[11px] text-slate-400">
+                              {ex.sets_reps}
+                            </p>
                           </div>
                         </div>
-                        <div className="p-3.5">
-                          <div className="flex flex-wrap gap-1 text-[10px] font-bold">
-                            <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-sky-300">
-                              {ex.level}
-                            </span>
-                            <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-indigo-300">
-                              {ex.muscle_group}
-                            </span>
-                            <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-pink-300">
-                              {ex.equipment}
-                            </span>
-                          </div>
-                          <h3 className="mt-2 text-base font-extrabold text-white group-hover:text-sky-300">
-                            {ex.name}
-                          </h3>
-                          <p className="mt-1 text-[11px] text-slate-400">
-                            {ex.sets_reps}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {visibleCount < filtered.length && (
@@ -887,30 +1111,29 @@ export default function HomePage() {
       )}
 
       {/* =========================================================
-          PAGE 5: ABOUT
+          PAGE 5: ABOUT (ANIMATED DEDICATION ONLY)
          ========================================================= */}
       {activeNav === 'about' && (
-        <section className="mx-auto max-w-3xl px-4 py-10">
-          <div className="matte-box rounded-3xl p-6 sm:p-8">
-            <h2 className="text-2xl font-extrabold text-white">About FitLife 0–90</h2>
-            <p className="mt-3 text-xs leading-relaxed text-slate-300">
-              Guided workouts, live form animations, body tracking tools, and personal coaches built for every age from 0 to 90.
-            </p>
+        <section className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center px-4 py-12">
+          <div className="matte-box relative w-full overflow-hidden rounded-3xl px-8 py-16 text-center shadow-2xl shadow-pink-500/10">
+            {/* Soft Floating Animated Hearts */}
+            <span className="animate-float-up pointer-events-none absolute left-[18%] top-2/3 text-lg opacity-60">
+              🌸
+            </span>
+            <span className="animate-float-up pointer-events-none absolute right-[20%] top-3/4 text-base opacity-60 [animation-delay:1.1s]">
+              💖
+            </span>
+            <span className="animate-float-up pointer-events-none absolute left-[48%] top-3/4 text-sm opacity-60 [animation-delay:2.1s]">
+              🌷
+            </span>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div className="matte-box-soft rounded-2xl p-4">
-                <h3 className="text-sm font-extrabold text-sky-300">🥷 Ninja &amp; 🌸 Bloom</h3>
-                <p className="mt-1.5 text-xs text-slate-400">
-                  Switch your AI coach anytime from the bottom-right corner.
-                </p>
-              </div>
-              <div className="matte-box-soft rounded-2xl p-4">
-                <h3 className="text-sm font-extrabold text-pink-300">❤️ Body Maintainer</h3>
-                <p className="mt-1.5 text-xs text-slate-400">
-                  Track BMI, calories, water, hourly needs, and daily habits.
-                </p>
-              </div>
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-pink-500/15 shadow-lg shadow-pink-500/20">
+              <Heart className="animate-heartbeat h-8 w-8 fill-pink-500 text-pink-400" />
             </div>
+
+            <h2 className="animate-shimmer-text mt-6 bg-gradient-to-r from-pink-400 via-sky-300 to-rose-400 bg-clip-text text-2xl font-extrabold tracking-tight text-transparent sm:text-4xl">
+              Created for my Hubie with Love.
+            </h2>
           </div>
         </section>
       )}
@@ -919,17 +1142,32 @@ export default function HomePage() {
       {activeExercise && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
           <div className="matte-box relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl p-5 text-slate-100 shadow-2xl">
-            <button
-              onClick={() => {
-                setActiveExercise(null);
-                setIsGuidedMode(false);
-              }}
-              className="absolute right-4 top-4 rounded-xl bg-white/10 p-1.5 text-slate-300 hover:bg-white/20 hover:text-white"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="absolute right-4 top-4 flex items-center gap-1.5">
+              <button
+                onClick={() => toggleFavorite(activeExercise.id)}
+                title="Save Favorite"
+                className="rounded-xl bg-white/10 p-1.5 hover:bg-white/20"
+              >
+                <Heart
+                  className={`h-4 w-4 ${
+                    favoriteIds.includes(activeExercise.id)
+                      ? 'fill-pink-500 text-pink-500'
+                      : 'text-slate-300'
+                  }`}
+                />
+              </button>
+              <button
+                onClick={() => {
+                  setActiveExercise(null);
+                  setIsGuidedMode(false);
+                }}
+                className="rounded-xl bg-white/10 p-1.5 text-slate-300 hover:bg-white/20 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-            <h2 className="pr-8 text-lg font-extrabold text-white">{activeExercise.name}</h2>
+            <h2 className="pr-16 text-lg font-extrabold text-white">{activeExercise.name}</h2>
             <p className="mt-0.5 text-xs font-bold text-sky-400">
               {activeExercise.muscle_group} • {activeExercise.equipment} • {activeExercise.sets_reps}
             </p>
