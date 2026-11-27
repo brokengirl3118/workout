@@ -36,13 +36,13 @@ export default function ExerciseAnimator({ name, frame1, frame2 }: Props) {
   )}`;
 
   return (
-    <div className="mt-4 overflow-hidden rounded-2xl border border-sky-100 bg-sky-50/40 shadow-sm">
-      <div className="relative h-64 w-full overflow-hidden bg-gradient-to-b from-sky-100/50 to-white">
+    <div className="matte-box-soft mt-3 overflow-hidden rounded-2xl">
+      <div className="relative h-56 w-full overflow-hidden bg-black">
         {frame1 ? (
           <>
             <img
               src={frame1}
-              alt={`${name} start position`}
+              alt={`${name} start`}
               className={`absolute inset-0 h-full w-full object-contain transition-all duration-500 ${
                 frame === 0
                   ? 'opacity-100 scale-100'
@@ -54,7 +54,7 @@ export default function ExerciseAnimator({ name, frame1, frame2 }: Props) {
             {hasTwoFrames && frame2 && (
               <img
                 src={frame2}
-                alt={`${name} peak position`}
+                alt={`${name} peak`}
                 className={`absolute inset-0 h-full w-full object-contain transition-all duration-500 ${
                   frame === 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
                 }`}
@@ -63,54 +63,38 @@ export default function ExerciseAnimator({ name, frame1, frame2 }: Props) {
           </>
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-slate-400">
-            No animation preview available
+            No preview
           </div>
         )}
 
-        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-sky-700 shadow-sm backdrop-blur">
-          <span
-            className={`h-2 w-2 rounded-full ${
-              playing ? 'animate-pulse bg-sky-500' : 'bg-slate-400'
-            }`}
-          />
-          {playing
-            ? frame === 0
-              ? 'INHALE • START POSE'
-              : 'EXHALE • PEAK MOTION'
-            : 'PAUSED'}
+        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/80 px-3 py-1 text-[10px] font-bold text-sky-300 backdrop-blur">
+          <span className={`h-1.5 w-1.5 rounded-full ${playing ? 'animate-pulse bg-sky-400' : 'bg-slate-500'}`} />
+          {playing ? (frame === 0 ? 'INHALE' : 'EXHALE') : 'PAUSED'}
         </div>
 
-        <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-slate-700 shadow-sm backdrop-blur">
-          Reps: <span className="text-sky-600">{reps}</span>
-          <button
-            onClick={() => setReps(0)}
-            title="Reset Reps"
-            className="ml-1 text-slate-400 hover:text-sky-600"
-          >
+        <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-black/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur">
+          Reps: <span className="text-pink-400">{reps}</span>
+          <button onClick={() => setReps(0)} className="ml-1 text-slate-400 hover:text-white">
             <RotateCcw className="h-3 w-3" />
           </button>
         </div>
 
-        <div className="absolute bottom-0 left-0 h-1 w-full bg-sky-100">
-          <div
-            className={`h-full bg-sky-500 transition-all duration-500 ${
-              frame === 1 ? 'w-full' : 'w-1/3'
-            }`}
-          />
+        <div className="absolute bottom-0 left-0 h-1 w-full bg-white/10">
+          <div className={`h-full bg-gradient-to-r from-sky-400 to-pink-400 transition-all duration-500 ${frame === 1 ? 'w-full' : 'w-1/3'}`} />
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-sky-100 bg-white px-3 py-2.5 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#0d0d13] px-3 py-2 text-xs">
         <button
           onClick={() => setPlaying((p) => !p)}
-          className="flex items-center gap-1.5 rounded-xl bg-sky-100 px-3 py-1.5 font-bold text-sky-700 hover:bg-sky-200"
+          className="flex items-center gap-1 rounded-lg bg-sky-500/20 px-2.5 py-1 font-bold text-sky-300 hover:bg-sky-500/30"
         >
-          {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+          {playing ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
           {playing ? 'Pause' : 'Play'}
         </button>
 
-        <div className="flex items-center gap-1 text-slate-500">
-          <Gauge className="h-3.5 w-3.5 text-sky-500" />
+        <div className="flex items-center gap-1 text-slate-400">
+          <Gauge className="h-3 w-3 text-sky-400" />
           {[
             { label: 'Slow', ms: 1300 },
             { label: 'Normal', ms: 900 },
@@ -119,8 +103,8 @@ export default function ExerciseAnimator({ name, frame1, frame2 }: Props) {
             <button
               key={s.label}
               onClick={() => setSpeedMs(s.ms)}
-              className={`rounded-lg px-2 py-1 font-semibold ${
-                speedMs === s.ms ? 'bg-sky-500 text-white' : 'hover:bg-sky-50'
+              className={`rounded-md px-2 py-0.5 font-bold ${
+                speedMs === s.ms ? 'bg-white/15 text-white' : 'hover:bg-white/5'
               }`}
             >
               {s.label}
@@ -132,9 +116,9 @@ export default function ExerciseAnimator({ name, frame1, frame2 }: Props) {
           href={videoSearchUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 rounded-xl bg-rose-50 px-2.5 py-1.5 font-bold text-rose-600 hover:bg-rose-100"
+          className="flex items-center gap-1 rounded-lg bg-pink-500/20 px-2.5 py-1 font-bold text-pink-300 hover:bg-pink-500/30"
         >
-          <Video className="h-3.5 w-3.5" /> Live Video
+          <Video className="h-3 w-3" /> Video
         </a>
       </div>
     </div>

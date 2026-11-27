@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
+import ClickFlowerBurst from '@/components/ClickFlowerBurst';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -9,8 +10,8 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'FitLife 0–90 | Wellness & Fitness Studio',
-  description: 'Smooth, guided fitness, body maintenance, and wellness for ages 0 to 90.',
+  title: 'FitLife 0–90 | Fitness & Health',
+  description: 'Guided workouts and daily body care for ages 0 to 90.',
 };
 
 export default function RootLayout({
@@ -20,7 +21,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={jakarta.className}>
-      <body className="antialiased selection:bg-sky-200 selection:text-sky-950">
+      <body className="bg-[#060609] text-slate-100 antialiased selection:bg-sky-500/30 selection:text-sky-200">
+        <ClickFlowerBurst />
         {children}
       </body>
     </html>

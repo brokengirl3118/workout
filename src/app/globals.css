@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@property --border-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes border-spin {
+  to {
+    --border-angle: 360deg;
   }
 }
 
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #060609;
+  color: #f8fafc;
+}
+
+/* Matte Black Gradient Box with Thin Animated Border */
+.matte-box {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(155deg, #14141c 0%, #0a0a0f 100%) padding-box,
+    conic-gradient(
+      from var(--border-angle),
+      rgba(56, 189, 248, 0.12) 0%,
+      rgba(56, 189, 248, 0.85) 20%,
+      rgba(244, 114, 182, 0.85) 45%,
+      rgba(167, 139, 250, 0.25) 70%,
+      rgba(56, 189, 248, 0.12) 100%
+    ) border-box;
+  animation: border-spin 5s linear infinite;
+}
+
+/* Subtle Tinted Matte Box */
+.matte-box-soft {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(160deg, #12131a 0%, #09090d 100%) padding-box,
+    conic-gradient(
+      from var(--border-angle),
+      rgba(148, 163, 184, 0.1) 0%,
+      rgba(56, 189, 248, 0.55) 30%,
+      rgba(251, 113, 133, 0.55) 65%,
+      rgba(148, 163, 184, 0.1) 100%
+    ) border-box;
+  animation: border-spin 7s linear infinite;
+}
+
+/* Matte Pill / Button with Thin Animated Border */
+.matte-pill {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(145deg, #171722 0%, #0d0d14 100%) padding-box,
+    conic-gradient(
+      from var(--border-angle),
+      rgba(56, 189, 248, 0.2) 0%,
+      rgba(244, 114, 182, 0.75) 50%,
+      rgba(56, 189, 248, 0.2) 100%
+    ) border-box;
+  animation: border-spin 4s linear infinite;
 }
