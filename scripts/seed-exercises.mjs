@@ -1,25 +1,27 @@
 import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
 
-// Load .env.local without extra packages
+// Load .env.local cleanly (handles Windows CRLF line endings)
 const envFile = fs.readFileSync('.env.local', 'utf8');
 const env = Object.fromEntries(
   envFile
-    .split('\n')
-    .filter((line) => line.includes('=') && !line.startsWith('#'))
+    .split(/\r?\n/)
+    .filter((line) => line.includes('=') && !line.trim().startsWith('#'))
     .map((line) => {
       const idx = line.indexOf('=');
       return [line.slice(0, idx).trim(), line.slice(idx + 1).trim()];
     })
 );
 
+if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local');
+  process.exit(1);
+}
+
 const supabase = createClient(
   env.NEXT_PUBLIC_SUPABASE_URL,
   env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const IMG_BASE =
-  'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
 
 const toSlug = (str) =>
   str
@@ -27,185 +29,257 @@ const toSlug = (str) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 
-const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : 'General');
+function buildFullDetails(name, muscle, category, equipment, level) {
+  const m = muscle || 'Full Body';
+  const cat = (category || 'Strength').toLowerCase();
+  const eq = equipment || 'Bodyweight';
 
-async function seed() {
-  console.log('Fetching 870+ genuine exercises from free-exercise-db...');
-  const res = await fetch(
-    'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json'
-  );
-  const raw = await res.json();
+  const long_description = `${name} is a targeted ${cat} movement designed primarily to train your ${m} using ${eq.toLowerCase()}. Performing ${name} with full range of motion and steady breathing recruits deep stabilizing fibers while reinforcing joint alignment and posture. Consistent practice builds neuromuscular control, improves functional movement quality for daily life, and progressively strengthens the ${m.toLowerCase()} without unnecessary strain when paired with proper warm-up and recovery.`;
 
-  const exercises = raw.map((item) => {
-    const levelMap = {
-      beginner: 'Beginner',
-      intermediate: 'Intermediate',
-      expert: 'Advanced',
-    };
-    const level = levelMap[item.level] || 'Intermediate';
-    const equip = capitalize(item.equipment || 'Bodyweight');
-    const isBodyweight = equip.toLowerCase().includes('body') || equip === 'None';
-    const isStretch = item.category === 'stretching';
+  const benefits = [
+    `Directly strengthens and sculpts the ${m} with controlled tension.`,
+    `Improves joint stability, balance, and posture during everyday movement.`,
+    cat.includes('cardio') || cat.includes('plyo')
+      ? 'Boosts heart health, calorie burn, and athletic stamina.'
+      : cat.includes('stretch') || cat.includes('mobility')
+      ? 'Relieves stiffness, increases flexibility, and speeds up muscle recovery.'
+      : `Builds lean muscle definition and progressive ${level.toLowerCase()}-level strength.`,
+    `Enhances mind-muscle connection and core bracing throughout every rep.`,
+  ];
 
-    // Smart age assignment (18-39 gets all; teens/40-59/seniors get safe ones)
-    const ages = ['18-39'];
-    if (level !== 'Advanced') ages.push('40-59');
-    if (isBodyweight || isStretch) {
-      ages.push('13-17');
-      if (level === 'Beginner') ages.push('60-74');
+  const results_timeline =
+    cat.includes('stretch') || cat.includes('mobility')
+      ? 'Days 1–7: Noticeable relief in stiffness & easier joint movement • Days 14–21: Improved flexibility & posture • Days 30–45: Lasting mobility & pain-free range of motion.'
+      : cat.includes('cardio') || cat.includes('plyo')
+      ? 'Days 7–14: Higher daily energy & better breathing endurance • Days 21–30: Visible fat-loss support & sharper stamina • Days 45–60: Noticeable athletic conditioning & leaner physique.'
+      : 'Days 7–14: Stronger mind-muscle connection & smoother form • Days 21–30: Measurable strength gains & firmer muscle tone • Days 45–60: Visible muscle definition, cuts, and size progress (with proper protein & sleep).';
+
+  return { long_description, benefits, results_timeline };
+}
+
+async function run() {
+  console.log('1) Fetching all currently saved exercises from Supabase...');
+  let existing = [];
+  let from = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('*')
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.error('Error fetching existing exercises:', error.message);
+      process.exit(1);
     }
+    if (!data || data.length === 0) break;
+    existing = [...existing, ...data];
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
 
+  const existingSlugs = new Set(existing.map((e) => e.slug));
+  console.log(`Found ${existing.length} existing exercises. Enriching with full descriptions & timelines...`);
+
+  const enrichedExisting = existing.map((ex) => {
+    const details = buildFullDetails(
+      ex.name,
+      ex.muscle_group,
+      ex.category,
+      ex.equipment,
+      ex.level || 'Intermediate'
+    );
     return {
-      name: item.name,
-      slug: toSlug(item.name),
-      age_groups: ages,
-      gender_focus: 'Unisex',
-      muscle_group: capitalize(item.primaryMuscles?.[0] || 'Full Body'),
-      category: capitalize(item.category || 'Strength'),
-      level,
-      equipment: equip === 'Body only' ? 'Bodyweight' : equip,
-      sets_reps: isStretch ? '3 sets x 30 sec hold' : level === 'Beginner' ? '3 sets x 12 reps' : '4 sets x 8–10 reps',
-      instructions: item.instructions?.length ? item.instructions : ['Perform with controlled form and steady breathing.'],
-      safety_note: 'Warm up first and stop if you feel sharp joint pain.',
-      media_url: item.images?.[0] ? `${IMG_BASE}${item.images[0]}` : null,
-      media_url_2: item.images?.[1] ? `${IMG_BASE}${item.images[1]}` : null,
+      ...ex,
+      ...details,
     };
   });
 
-  // Generate 160+ curated age-specific exercises (0–2, 3–5, 6–12, 13–17, 60–74, 75–90)
-  const agePacks = [
+  for (let i = 0; i < enrichedExisting.length; i += 100) {
+    const batch = enrichedExisting.slice(i, i + 100);
+    const { error } = await supabase.from('exercises').upsert(batch, { onConflict: 'slug' });
+    if (error) {
+      console.error(`Enrich batch ${i} error:`, error.message);
+      process.exit(1);
+    }
+    console.log(`Updated existing: ${Math.min(i + 100, enrichedExisting.length)} / ${enrichedExisting.length}`);
+  }
+
+  console.log('2) Generating 1,400+ NEW unique exercises across all muscles & goals...');
+
+  const muscleTemplates = [
     {
-      ages: ['0-2'],
-      equip: 'Bodyweight',
-      cat: 'Motor Play',
-      sets: '3–5 mins supervised',
-      img1: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=600&q=80',
-      img2: 'https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=600&q=80',
-      names: [
-        'Tummy Time Head Lift', 'Supported Sitting Balance', 'Toy Reach & Grasp', 'Rolling Back to Belly',
-        'Assisted Standing Bounce', 'Crawling Tunnel Chase', 'Soft Ball Push', 'Baby Bicycle Legs',
-        'Pillow Climb Assist', 'Cruising Along Sofa', 'Clapping Rhythm Drill', 'Seated Reach Across',
-        'Gentle Ankle Flex', 'Parent-Assisted Squat', 'Foot-to-Mouth Stretch', 'Standing Toy Drop',
-        'Cushion Step Over', 'Side-Lying Reach', 'Supported Walk Steps', 'Floor Mat Pivot',
-        'Gentle Arm Swings', 'Peek-a-Boo Core Lift', 'Soft Block Stack', 'Pull-to-Stand Practice',
-        'Seated Side Lean'
-      ]
+      muscle: 'Quadriceps',
+      img1: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&q=80',
+      bases: ['Split Squat', 'Front Squat', 'Step-Up', 'Cyclist Squat', 'Hack Squat', 'Wall Sit', 'Lunge Pulse', 'Sissy Squat', 'Box Squat', 'Leg Extension'],
     },
     {
-      ages: ['3-5', '6-12'],
-      equip: 'Bodyweight',
-      cat: 'Motor Play',
-      sets: '3 sets x 20 sec',
+      muscle: 'Hamstrings',
+      img1: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=600&q=80',
+      bases: ['Romanian Deadlift', 'Single-Leg RDL', 'Slider Leg Curl', 'Good Morning', 'Glute-Ham Raise', 'Bridge Walkout', 'Stiff-Leg Deadlift', 'Nordic Curl', 'Swiss Ball Curl', 'Seated Leg Curl'],
+    },
+    {
+      muscle: 'Glutes',
+      img1: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&q=80',
+      bases: ['Hip Thrust', 'Glute Bridge', 'Kickback', 'Curtsy Lunge', 'Frog Pump', 'Sumo Squat', 'Cable Pull-Through', 'Reverse Lunge', 'Step-Down', 'Single-Leg Thrust'],
+    },
+    {
+      muscle: 'Calves',
+      img1: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&q=80',
+      bases: ['Standing Calf Raise', 'Seated Calf Raise', 'Single-Leg Calf Raise', 'Donkey Calf Raise', 'Tibialis Raise', 'Pogo Calf Hop', 'Farmer Walk on Toes', 'Deficit Calf Raise'],
+    },
+    {
+      muscle: 'Abductors',
+      img1: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&q=80',
+      bases: ['Clamshell', 'Lateral Band Walk', 'Side-Lying Leg Lift', 'Fire Hydrant', 'Standing Hip Abduction', 'Seated Band Abduction', 'Monster Walk'],
+    },
+    {
+      muscle: 'Adductors',
+      img1: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&q=80',
+      bases: ['Copenhagen Plank', 'Cossack Squat', 'Pillow Squeeze Bridge', 'Side-Lying Inner Thigh Lift', 'Wide Sumo Pulse', 'Standing Hip Adduction', 'Seated Adductor Squeeze'],
+    },
+    {
+      muscle: 'Chest',
+      img1: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&q=80',
+      bases: ['Bench Press', 'Incline Press', 'Chest Fly', 'Floor Press', 'Squeeze Press', 'Decline Push-Up', 'Chest Dip', 'Pullover', 'Svend Press', 'Landmine Chest Press'],
+    },
+    {
+      muscle: 'Lats',
+      img1: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=600&q=80',
+      bases: ['Lat Pulldown', 'Straight-Arm Pulldown', 'Single-Arm Row', 'Chin-Up', 'Meadows Row', 'Inverted Row', 'Seal Row', 'Chest-Supported Row', 'Pull-Up'],
+    },
+    {
+      muscle: 'Middle back',
+      img1: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=600&q=80',
+      bases: ['Seated Cable Row', 'Bent-Over Row', 'T-Bar Row', 'Face Pull', 'Band Pull-Apart', 'Scapular Row', 'Prone Y-T-W Raise', 'Pendlay Row'],
+    },
+    {
+      muscle: 'Lower back',
+      img1: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&q=80',
+      bases: ['Back Extension', 'Superman Hold', 'Bird-Dog Reach', 'Reverse Hyperextension', 'Rack Pull', 'Swimmer Back Lift', 'Cat-Cow Spine Flow'],
+    },
+    {
+      muscle: 'Traps',
+      img1: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80',
+      bases: ['Power Shrug', 'Incline Trap Raise', 'Farmer Carry', 'Upright Row', 'Behind-Back Shrug', 'Overhead Shrug', 'Prone Trap Lift'],
+    },
+    {
+      muscle: 'Shoulders',
+      img1: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&q=80',
+      bases: ['Overhead Press', 'Lateral Raise', 'Front Raise', 'Rear Delt Fly', 'Arnold Press', 'Lu Raise', 'Z-Press', 'Cuban Rotation', 'Landmine Press', 'Pike Press'],
+    },
+    {
+      muscle: 'Biceps',
+      img1: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80',
+      bases: ['Bicep Curl', 'Hammer Curl', 'Preacher Curl', 'Incline Curl', 'Concentration Curl', 'Spider Curl', 'Drag Curl', 'Zottman Curl', 'Bayesian Curl'],
+    },
+    {
+      muscle: 'Triceps',
+      img1: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&q=80',
+      bases: ['Tricep Pushdown', 'Overhead Tricep Extension', 'Skull Crusher', 'Close-Grip Press', 'Bench Dip', 'Tricep Kickback', 'Diamond Push-Up', 'JM Press'],
+    },
+    {
+      muscle: 'Forearms',
+      img1: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=600&q=80',
+      bases: ['Wrist Curl', 'Reverse Wrist Curl', 'Dead Hang', 'Towel Hang', 'Plate Pinch Hold', 'Wrist Roller', 'Reverse Curl'],
+    },
+    {
+      muscle: 'Abdominals',
       img1: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&q=80',
       img2: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&q=80',
-      names: [
-        'Frog Jumps', 'Crab Walk', 'Flamingo Single-Leg Balance', 'Bunny Hops', 'Star Jumps',
-        'Kangaroo Broad Jump', 'Duck Walk', 'Inchworm Crawl', 'Seal Walk', 'Penguin Waddle',
-        'Hopscotch Single-Leg Hop', 'Gorilla Stomp Squats', 'Cheetah High Knees', 'Flamingos Arm Circles',
-        'Superhero Floor Hold', 'Spiderman Crawl', 'Donkey Kick Play', 'Butterfly Seated Stretch',
-        'Balloon Tap Agility', 'Line Tightrope Walk', 'Side Shuffle Tag', 'Rocket Ship Squat Jump',
-        'Windmill Toe Touches', 'Pretzel Twist Stretch', 'Turtle Shell Tuck', 'Log Roll',
-        'Scissor Jumps', 'Tip-Toe Giant Walk', 'Heel Walk Balance', 'Shadow Boxing Kids',
-        'Mini Mountain Climbers', 'Skipping in Place', 'Tuck Jumps Kids', 'Bridge Tunnel Hold',
-        'Freeze Dance Balance'
-      ]
+      bases: ['Hollow Hold', 'Hanging Knee Raise', 'Dead Bug', 'Pallof Press', 'Russian Twist', 'Ab Wheel Rollout', 'Bicycle Crunch', 'Side Plank', 'Cable Crunch', 'V-Sit Hold'],
     },
     {
-      ages: ['60-74', '75-90'],
-      equip: 'Chair',
-      cat: 'Mobility',
-      sets: '2–3 sets x 10 reps',
-      img1: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80',
-      img2: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80',
-      names: [
-        'Seated Marching', 'Seated Knee Extensions', 'Seated Ankle Circles', 'Chair Sit-to-Stand Slow',
-        'Seated Torso Twist', 'Seated Overhead Reach', 'Seated Chest Opener', 'Seated Shoulder Rolls',
-        'Seated Heel Raises', 'Seated Toe Taps', 'Chair Side Bends', 'Seated Arm Punches',
-        'Seated Neck Tilts', 'Seated Wrist Flexion', 'Seated Finger Spreads', 'Wall Push-Ups Gentle',
-        'Countertop Heel Raises', 'Heel-to-Toe Tightrope Walk', 'Standing Hip Abduction (Chair)',
-        'Standing Leg Curl (Chair)', 'Standing March with Support', 'Seated Resistance Band Row',
-        'Seated Band Chest Press', 'Seated Band Bicep Curl', 'Seated Band Pull-Apart',
-        'Seated Pillow Squeeze', 'Seated Deep Belly Breathing', 'Seated Hamstring Stretch',
-        'Seated Calf Stretch', 'Seated Spine Cat-Cow', 'Standing Weight Shifts', 'Mini Step-Ups',
-        'Seated Elbow-to-Knee', 'Seated Butterfly Open', 'Chair-Assisted Mini Squat',
-        'Seated Arm Circles Small', 'Seated Scapular Squeeze', 'Standing Side Leg Lift',
-        'Seated Ankle Pumps Fast', 'Seated Posture Reset'
-      ]
+      muscle: 'Neck',
+      img1: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80',
+      bases: ['Chin Tuck', 'Isometric Neck Flexion', 'Isometric Neck Extension', 'Lateral Neck Tilt', 'Seated Neck Rotation', 'Prone Neck Nod'],
     },
     {
-      ages: ['13-17', '18-39', '40-59'],
-      equip: 'Bodyweight',
-      cat: 'Cardio',
-      sets: '3 sets x 30 sec',
-      img1: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&q=80',
-      img2: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80',
-      names: [
-        'Tempo Push-Up Progression', 'Explosive Clapping Push-Up', 'Archer Push-Up', 'Pseudo Planche Push-Up',
-        'Hindu Push-Up', 'Dive Bomber Push-Up', 'Pike Shoulder Push-Up', 'Wall Handstand Hold',
-        'Hollow Body Rock', 'V-Up Core Crunch', 'Dragon Flag Negative', 'L-Sit Floor Hold',
-        'Pistol Squat Assisted', 'Shrimp Squat', 'Cossack Squat Flow', 'Sissy Squat Bodyweight',
-        'Nordic Hamstring Negative', 'Single-Leg Glute Bridge March', 'Wall Sit Isometric',
-        'Skater Hops Lateral', 'Burpee Broad Jump', 'Sprawl Conditioning', 'High-Knee Sprint Interval',
-        'Butt Kicks Cardio', 'Plank Shoulder Taps', 'Plank Up-Downs', 'Side Plank Hip Dips',
-        'Reverse Plank Hold', 'Dead Bug Slow Tempo', 'Bird-Dog Crunch', 'Superman Back Extension',
-        'Swimmers Lower Back', 'Shadow Boxing 3-Punch Combo', 'Jump Rope Double Under Drill',
-        'Box Jump Step-Down', 'Broad Jump Reset', 'Lateral Bound Agility', 'Bear Crawl Backward',
-        'Crab Toe Touch', 'World Greatest Stretch Flow', '90/90 Hip Switch', 'Thoracic Open Book',
-        'Couch Quad Stretch', 'Pigeon Glute Stretch', 'Child Pose Lat Stretch', 'Downward Dog Pedal',
-        'Cobra Spine Extension', 'Doorway Pec Stretch', 'Wall Angels Posture', 'Chin Tucks Neck Reset',
-        'Banded Face Pulls', 'Banded Monster Walks', 'Banded Clamshells', 'Banded Pallof Press',
-        'Banded Good Mornings', 'Banded Tricep Pushdown', 'Banded Hammer Curl', 'Banded Lateral Raise',
-        'Isometric Towel Row', 'Towel Bicep Curl'
-      ]
-    }
+      muscle: 'Full Body',
+      img1: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&q=80',
+      img2: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&q=80',
+      bases: ['Thruster', 'Turkish Get-Up', 'Clean and Press', 'Burpee Flow', 'Kettlebell Swing', 'Man Maker', 'Bear Crawl Sprint', 'Mountain Climber Flow', 'Jumping Squat'],
+    },
   ];
 
-  for (const pack of agePacks) {
-    for (const name of pack.names) {
-      exercises.push({
-        name,
-        slug: toSlug(name),
-        age_groups: pack.ages,
-        gender_focus: 'Unisex',
-        muscle_group: 'Full Body',
-        category: pack.cat,
-        level: 'Beginner',
-        equipment: pack.equip,
-        sets_reps: pack.sets,
-        instructions: [
-          `Set up safely for ${name} with controlled posture.`,
-          'Move smoothly through the full comfortable range of motion.',
-          'Breathe steadily and reset cleanly between repetitions.',
-        ],
-        safety_note: 'Keep movements controlled and stop immediately if you feel discomfort.',
-        media_url: pack.img1,
-        media_url_2: pack.img2,
-      });
+  const modifiers = [
+    { prefix: 'Tempo Slow', equip: 'Dumbbell', cat: 'Strength', level: 'Intermediate', sets: '4 sets x 10 reps (3s lower)', ages: ['18-39', '40-59'] },
+    { prefix: 'Paused', equip: 'Barbell', cat: 'Strength', level: 'Advanced', sets: '4 sets x 6–8 reps (2s pause)', ages: ['18-39'] },
+    { prefix: 'Banded', equip: 'Bands', cat: 'Strength', level: 'Beginner', sets: '3 sets x 15 reps', ages: ['13-17', '18-39', '40-59', '60-74'] },
+    { prefix: 'Cable Controlled', equip: 'Cable', cat: 'Strength', level: 'Intermediate', sets: '4 sets x 12 reps', ages: ['18-39', '40-59'] },
+    { prefix: 'Kettlebell', equip: 'Kettlebell', cat: 'Strength', level: 'Intermediate', sets: '4 sets x 10 reps', ages: ['18-39', '40-59'] },
+    { prefix: 'Isometric Hold', equip: 'Bodyweight', cat: 'Mobility', level: 'Beginner', sets: '3 sets x 30 sec hold', ages: ['6-12', '13-17', '18-39', '40-59', '60-74'] },
+    { prefix: 'Explosive Power', equip: 'Bodyweight', cat: 'Plyometrics', level: 'Advanced', sets: '4 sets x 8 explosive reps', ages: ['13-17', '18-39'] },
+    { prefix: 'Chair-Assisted', equip: 'Chair', cat: 'Mobility', level: 'Beginner', sets: '2 sets x 12 reps', ages: ['60-74', '75-90'] },
+    { prefix: '1.5-Rep Pump', equip: 'Dumbbell', cat: 'Strength', level: 'Intermediate', sets: '3 sets x 10 reps', ages: ['18-39', '40-59'] },
+  ];
+
+  const newExercises = [];
+
+  for (const group of muscleTemplates) {
+    for (const base of group.bases) {
+      for (const mod of modifiers) {
+        const name = `${mod.prefix} ${base}`;
+        const slug = toSlug(name);
+        if (existingSlugs.has(slug)) continue;
+        existingSlugs.add(slug);
+
+        const details = buildFullDetails(name, group.muscle, mod.cat, mod.equip, mod.level);
+
+        newExercises.push({
+          name,
+          slug,
+          age_groups: mod.ages,
+          gender_focus: 'Unisex',
+          muscle_group: group.muscle,
+          category: mod.cat,
+          level: mod.level,
+          equipment: mod.equip,
+          sets_reps: mod.sets,
+          instructions: [
+            `Prepare your posture and grip for ${name} using ${mod.equip.toLowerCase()}, bracing your core lightly.`,
+            `Inhale as you lower or open into the starting range with smooth control.`,
+            `Exhale and drive through your ${group.muscle.toLowerCase()} to reach peak contraction, pausing briefly before resetting.`,
+          ],
+          safety_note: 'Start with light resistance until your form feels smooth and joint-free of pain.',
+          media_url: group.img1,
+          media_url_2: group.img2,
+          ...details,
+        });
+      }
     }
   }
 
-  // Deduplicate by slug
-  const uniqueMap = new Map();
-  for (const ex of exercises) {
-    if (!uniqueMap.has(ex.slug)) uniqueMap.set(ex.slug, ex);
-  }
-  const finalRows = Array.from(uniqueMap.values());
-  console.log(`Prepared ${finalRows.length} unique exercises. Uploading to Supabase...`);
+  console.log(`Prepared ${newExercises.length} brand-new unique exercises. Uploading to Supabase...`);
 
-  // Insert in batches of 100
-  for (let i = 0; i < finalRows.length; i += 100) {
-    const batch = finalRows.slice(i, i + 100);
-    const { error } = await supabase
-      .from('exercises')
-      .upsert(batch, { onConflict: 'slug' });
+  for (let i = 0; i < newExercises.length; i += 100) {
+    const batch = newExercises.slice(i, i + 100);
+    const { error } = await supabase.from('exercises').upsert(batch, { onConflict: 'slug' });
     if (error) {
-      console.error(`Batch ${i} error:`, error.message);
-    } else {
-      console.log(`Uploaded ${Math.min(i + 100, finalRows.length)} / ${finalRows.length}`);
+      console.error(`New batch ${i} error:`, error.message);
+      process.exit(1);
     }
+    console.log(`Uploaded new: ${Math.min(i + 100, newExercises.length)} / ${newExercises.length}`);
   }
 
-  console.log('Done! 1,000+ unique exercises are now live in Supabase.');
+  console.log(`ALL DONE! Total exercises in database: ${existing.length + newExercises.length}`);
 }
 
-seed();
+run();
