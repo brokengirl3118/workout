@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function POST(req: Request) {
   try {
     const { message, coachGender, history } = await req.json();
@@ -28,38 +30,57 @@ You are a global workout expert for ages 0–90. Keep replies short, fast, and p
       { role: 'user', parts: [{ text: message }] },
     ];
 
-    const res = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents,
-          generationConfig: {
-            maxOutputTokens: 300,
-            temperature: 0.7,
+    const maxAttempts = 3;
+    let lastStatus = 500;
+    let lastError = 'Unknown error';
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const res = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
           },
-        }),
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents,
+            generationConfig: {
+              maxOutputTokens: 300,
+              temperature: 0.7,
+            },
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (res.ok) {
+        const reply =
+          data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+          'Sorry, I could not generate a response right now. Try again!';
+        return NextResponse.json({ reply });
       }
-    );
 
-    const data = await res.json();
+      lastStatus = res.status;
+      lastError = data?.error?.message || 'Unknown error';
 
-    if (!res.ok) {
-      return NextResponse.json({
-        reply: `Gemini API Error (${res.status}): ${data?.error?.message || 'Unknown error'}`,
-      });
+      // Auto-retry only on temporary server busy / rate-limit errors
+      if ((res.status === 503 || res.status === 429) && attempt < maxAttempts) {
+        await sleep(attempt * 1500);
+        continue;
+      }
+
+      break;
     }
 
-    const reply =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      'Sorry, I could not generate a response right now. Try again!';
-
-    return NextResponse.json({ reply });
+    return NextResponse.json({
+      reply:
+        lastStatus === 503
+          ? '🌸 servers are super busy right now. Please send your message again in a few seconds!'
+          : `Gemini API Error (${lastStatus}): ${lastError}`,
+    });
   } catch (err) {
     return NextResponse.json(
       { reply: `Server Error: ${err instanceof Error ? err.message : 'Try again.'}` },
