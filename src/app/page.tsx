@@ -15,6 +15,13 @@ import {
   Zap,
   Users,
   Activity,
+  Droplets,
+  Flame,
+  Sun,
+  Star,
+  Baby,
+  Smile,
+  Award,
 } from 'lucide-react';
 import { supabase, Exercise } from '@/lib/supabase';
 import { AGE_GROUPS, LevelKey } from '@/lib/data';
@@ -83,27 +90,46 @@ export default function HomePage() {
 
   const visibleExercises = filtered.slice(0, visibleCount);
 
+  const jumpToAge = (ageId: string) => {
+    setSearch('');
+    setSelectedAge(ageId);
+    setVisibleCount(24);
+    setActiveNav('exercises');
+  };
+
   return (
-    <main className="min-h-screen bg-sky-50 bg-[radial-gradient(#bae6fd_1.5px,transparent_1.5px)] [background-size:24px_24px] text-slate-900">
-      {/* STICKY DIGITAL NAVIGATION BAR */}
-      <nav className="sticky top-0 z-40 border-b-2 border-sky-900 bg-white/95 backdrop-blur-md">
+    <main className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-sky-100 via-indigo-50/70 to-pink-50/80 text-slate-800">
+      {/* Decorative Ambient Background Orbs */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-sky-300/35 blur-3xl" />
+        <div className="absolute right-0 top-1/4 h-[28rem] w-[28rem] rounded-full bg-violet-300/30 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-pink-200/40 blur-3xl" />
+        <div className="absolute -bottom-20 right-1/4 h-80 w-80 rounded-full bg-teal-200/35 blur-3xl" />
+      </div>
+
+      {/* STICKY GLASSY COLORFUL NAVIGATION BAR */}
+      <nav className="sticky top-0 z-40 border-b border-white/70 bg-white/75 backdrop-blur-xl shadow-sm shadow-sky-200/50">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3.5">
-          {/* Brand Logo */}
           <button
             onClick={() => setActiveNav('home')}
-            className="flex items-center gap-2.5 text-left transition hover:scale-[1.02]"
+            className="flex items-center gap-3 text-left transition hover:scale-[1.02]"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-sky-900 bg-sky-400 text-white shadow-[3px_3px_0px_0px_#0c4a6e]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-500 text-white shadow-[4px_4px_0px_0px_#bae6fd]">
               <Dumbbell className="h-5 w-5" />
             </div>
             <div>
               <h1 className="text-xl font-black tracking-tight text-slate-900">
-                FitLife <span className="text-sky-600">0–90</span>
+                FitLife{' '}
+                <span className="bg-gradient-to-r from-sky-500 via-blue-600 to-violet-600 bg-clip-text text-transparent">
+                  0–90
+                </span>
               </h1>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-sky-600">
+                Wellness Studio
+              </p>
             </div>
           </button>
 
-          {/* 4 Main Navigation Links */}
           <div className="flex flex-wrap items-center gap-2">
             {[
               { id: 'home', label: 'Home', icon: Home },
@@ -117,10 +143,10 @@ export default function HomePage() {
                 <button
                   key={item.id}
                   onClick={() => setActiveNav(item.id as NavTab)}
-                  className={`flex items-center gap-1.5 rounded-xl border-2 border-sky-900 px-4 py-2 text-xs font-black transition-all ${
+                  className={`flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-xs font-extrabold transition-all duration-200 ${
                     isActive
-                      ? 'bg-sky-500 text-white shadow-[4px_4px_0px_0px_#0c4a6e]'
-                      : 'bg-sky-50 text-sky-950 shadow-[2px_2px_0px_0px_#bae6fd] hover:-translate-y-0.5 hover:bg-sky-100 hover:shadow-[4px_4px_0px_0px_#0284c7]'
+                      ? 'bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 text-white shadow-[4px_4px_0px_0px_#bae6fd]'
+                      : 'border border-sky-200/80 bg-white/80 text-slate-700 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -133,98 +159,227 @@ export default function HomePage() {
       </nav>
 
       {/* =========================================================
-          PAGE 1: HOME (NO EXERCISES SHOWN — DIGITALLY STYLISH)
+          PAGE 1: HOME (DECORATIVE, COLORFUL, NO EXERCISES SHOWN)
          ========================================================= */}
       {activeNav === 'home' && (
-        <div className="mx-auto max-w-6xl space-y-12 px-4 py-12">
-          {/* Hero Digital Banner */}
-          <section className="relative overflow-hidden rounded-3xl border-2 border-sky-900 bg-white p-8 shadow-[10px_10px_0px_0px_#0284c7] sm:p-12">
-            <div className="relative z-10 max-w-3xl">
-              <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-sky-900 bg-sky-200 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-sky-950 shadow-[3px_3px_0px_0px_#0c4a6e]">
-                <Sparkles className="h-3.5 w-3.5" /> Next-Gen Fitness & Health Platform
-              </span>
-              <h2 className="mt-5 text-4xl font-black leading-tight tracking-tight text-slate-900 sm:text-5xl">
-                Train Smarter. Live Stronger. <br />
-                <span className="inline-block rounded-xl bg-sky-200 px-3 py-0.5 text-sky-900">
-                  Built for Ages 0 to 90.
+        <div className="mx-auto max-w-6xl space-y-12 px-4 py-10">
+          {/* Decorative 2-Column Hero */}
+          <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-gradient-to-br from-white/90 via-sky-50/85 to-indigo-50/85 p-8 shadow-[10px_10px_0px_0px_#bae6fd] backdrop-blur-xl sm:p-12">
+            <div className="grid items-center gap-10 lg:grid-cols-12">
+              {/* Left Text Column */}
+              <div className="lg:col-span-7">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-sky-100 via-indigo-100 to-pink-100 px-4 py-1.5 text-xs font-extrabold text-indigo-700 ring-1 ring-indigo-200/80">
+                  <Sparkles className="h-3.5 w-3.5 text-sky-500" />
+                  All-in-One Digital Fitness &amp; Body Care
                 </span>
-              </h2>
-              <p className="mt-5 max-w-2xl text-base font-medium text-slate-600">
-                Your complete digital wellness ecosystem—combining live animated workout form, hourly body maintenance tools, trusted level guides, and your personal 🥷 & 🌸 AI Coaches.
-              </p>
 
-              <div className="mt-8 flex flex-wrap gap-4">
-                <button
-                  onClick={() => setActiveNav('exercises')}
-                  className="flex items-center gap-2 rounded-2xl border-2 border-sky-900 bg-sky-500 px-6 py-3.5 text-sm font-black text-white shadow-[5px_5px_0px_0px_#0c4a6e] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#0c4a6e]"
-                >
-                  Explore All Exercises <ArrowRight className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setActiveNav('maintainer')}
-                  className="flex items-center gap-2 rounded-2xl border-2 border-sky-900 bg-sky-100 px-6 py-3.5 text-sm font-black text-sky-950 shadow-[5px_5px_0px_0px_#38bdf8] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#38bdf8]"
-                >
-                  <HeartPulse className="h-4 w-4 text-sky-700" /> Open Maintainer Hub
-                </button>
+                <h2 className="mt-5 text-4xl font-black leading-[1.12] tracking-tight text-slate-900 sm:text-5xl">
+                  Move Better. <br />
+                  Glow Stronger. <br />
+                  <span className="bg-gradient-to-r from-sky-500 via-indigo-500 to-pink-500 bg-clip-text text-transparent">
+                    Every Age, 0 to 90.
+                  </span>
+                </h2>
+
+                <p className="mt-5 max-w-xl text-base font-medium leading-relaxed text-slate-600">
+                  A lovely, stress-free wellness space designed for the whole family—featuring live animated form, hourly body maintenance, trusted level guides, and your personal 🥷 &amp; 🌸 AI Coaches.
+                </p>
+
+                <div className="mt-8 flex flex-wrap gap-3.5">
+                  <button
+                    onClick={() => setActiveNav('exercises')}
+                    className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 px-6 py-3.5 text-sm font-extrabold text-white shadow-[5px_5px_0px_0px_#bae6fd] transition-all hover:-translate-y-0.5 hover:brightness-105"
+                  >
+                    Explore All Exercises <ArrowRight className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setActiveNav('maintainer')}
+                    className="flex items-center gap-2 rounded-2xl border border-pink-200 bg-gradient-to-r from-pink-50 to-rose-50 px-6 py-3.5 text-sm font-extrabold text-rose-600 shadow-[5px_5px_0px_0px_#fbcfe8] transition-all hover:-translate-y-0.5 hover:brightness-105"
+                  >
+                    <HeartPulse className="h-4 w-4" /> Open Maintainer Hub
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Decorative Visual Showcase Card */}
+              <div className="lg:col-span-5">
+                <div className="relative rounded-3xl border border-white bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-500 p-6 text-white shadow-[8px_8px_0px_0px_#c7d2fe]">
+                  <div className="flex items-center justify-between">
+                    <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold backdrop-blur">
+                      Daily Wellness Pulse
+                    </span>
+                    <Sun className="h-5 w-5 text-amber-300" />
+                  </div>
+
+                  <div className="mt-6 grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl bg-white/15 p-4 backdrop-blur-md">
+                      <Droplets className="h-5 w-5 text-cyan-200" />
+                      <p className="mt-2 text-xs font-medium text-sky-100">Hydration</p>
+                      <p className="text-lg font-black">Hourly Sync</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/15 p-4 backdrop-blur-md">
+                      <Flame className="h-5 w-5 text-amber-200" />
+                      <p className="mt-2 text-xs font-medium text-sky-100">Energy &amp; BMI</p>
+                      <p className="text-lg font-black">Auto-Calc</p>
+                    </div>
+                    <div className="col-span-2 flex items-center justify-between rounded-2xl bg-white/20 p-4 backdrop-blur-md">
+                      <div>
+                        <p className="text-xs font-semibold text-sky-100">Dual AI Coaches Ready</p>
+                        <p className="mt-0.5 text-sm font-black">🥷 Male Ninja &amp; 🌸 Female</p>
+                      </div>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-lg shadow-sm">
+                        ✨
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
 
-          {/* Digital Feature Bento Grid */}
+          {/* Interactive Life-Stage Journey (Clicks into All Exercises) */}
+          <section className="space-y-5">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-sky-600">
+                  Tailored By Life Stage
+                </p>
+                <h3 className="mt-1 text-2xl font-black text-slate-900">
+                  Choose Your Age Journey
+                </h3>
+              </div>
+              <button
+                onClick={() => setActiveNav('exercises')}
+                className="text-xs font-extrabold text-indigo-600 hover:underline"
+              >
+                View full library →
+              </button>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                {
+                  id: '0-2',
+                  title: 'Infants & Kids',
+                  ages: '0 – 12 yrs',
+                  desc: 'Playful motor drills, balance & joyful movement.',
+                  icon: Baby,
+                  grad: 'from-cyan-50 to-sky-100/90',
+                  shadow: 'shadow-[6px_6px_0px_0px_#a5f3fc]',
+                  badge: 'bg-cyan-500 text-white',
+                },
+                {
+                  id: '13-17',
+                  title: 'Teens & Youth',
+                  ages: '13 – 17 yrs',
+                  desc: 'Athletic agility, posture & safe bodyweight strength.',
+                  icon: Zap,
+                  grad: 'from-violet-50 to-indigo-100/90',
+                  shadow: 'shadow-[6px_6px_0px_0px_#c7d2fe]',
+                  badge: 'bg-indigo-500 text-white',
+                },
+                {
+                  id: '18-39',
+                  title: 'Adults & Prime',
+                  ages: '18 – 59 yrs',
+                  desc: 'Full gym, dumbbell, calisthenics & cardio mastery.',
+                  icon: Award,
+                  grad: 'from-pink-50 to-rose-100/90',
+                  shadow: 'shadow-[6px_6px_0px_0px_#fbcfe8]',
+                  badge: 'bg-rose-500 text-white',
+                },
+                {
+                  id: '60-74',
+                  title: 'Seniors & Care',
+                  ages: '60 – 90 yrs',
+                  desc: 'Gentle chair mobility, joints & balance longevity.',
+                  icon: Smile,
+                  grad: 'from-emerald-50 to-teal-100/90',
+                  shadow: 'shadow-[6px_6px_0px_0px_#99f6e4]',
+                  badge: 'bg-teal-500 text-white',
+                },
+              ].map((card) => {
+                const Icon = card.icon;
+                return (
+                  <div
+                    key={card.id}
+                    onClick={() => jumpToAge(card.id)}
+                    className={`group cursor-pointer rounded-3xl border border-white/90 bg-gradient-to-br ${card.grad} p-6 ${card.shadow} transition-all duration-200 hover:-translate-y-1.5`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`rounded-xl px-3 py-1 text-[11px] font-black ${card.badge}`}>
+                        {card.ages}
+                      </span>
+                      <Icon className="h-5 w-5 text-slate-700 transition group-hover:scale-110" />
+                    </div>
+                    <h4 className="mt-4 text-lg font-black text-slate-900">{card.title}</h4>
+                    <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-600">
+                      {card.desc}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Smooth Feature Bento Cards */}
           <section className="grid gap-6 md:grid-cols-3">
             <div
               onClick={() => setActiveNav('exercises')}
-              className="group cursor-pointer rounded-3xl border-2 border-sky-900 bg-white p-6 shadow-[7px_7px_0px_0px_#38bdf8] transition-all hover:-translate-y-1 hover:shadow-[9px_9px_0px_0px_#0284c7]"
+              className="group cursor-pointer rounded-3xl border border-white bg-white/85 p-6 shadow-[6px_6px_0px_0px_#bae6fd] backdrop-blur transition-all hover:-translate-y-1"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-sky-900 bg-sky-200 text-sky-900 shadow-[3px_3px_0px_0px_#0c4a6e]">
-                <Zap className="h-6 w-6" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 text-white shadow-md shadow-sky-200">
+                <PlayCircle className="h-6 w-6" />
               </div>
               <h3 className="mt-5 text-xl font-black text-slate-900 group-hover:text-sky-600">
                 Live Animated Form
               </h3>
               <p className="mt-2 text-sm font-medium text-slate-600">
-                Every workout features smooth start-to-peak motion playback, breathing cues, rep counting, and live video demos.
+                Smooth start-to-peak motion playback, inhale/exhale cues, live rep counter, and instant video demos.
               </p>
             </div>
 
             <div
               onClick={() => setActiveNav('maintainer')}
-              className="group cursor-pointer rounded-3xl border-2 border-sky-900 bg-white p-6 shadow-[7px_7px_0px_0px_#0ea5e9] transition-all hover:-translate-y-1 hover:shadow-[9px_9px_0px_0px_#0284c7]"
+              className="group cursor-pointer rounded-3xl border border-white bg-white/85 p-6 shadow-[6px_6px_0px_0px_#ddd6fe] backdrop-blur transition-all hover:-translate-y-1"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-sky-900 bg-blue-200 text-blue-900 shadow-[3px_3px_0px_0px_#0c4a6e]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-400 to-indigo-500 text-white shadow-md shadow-indigo-200">
                 <Activity className="h-6 w-6" />
               </div>
-              <h3 className="mt-5 text-xl font-black text-slate-900 group-hover:text-sky-600">
+              <h3 className="mt-5 text-xl font-black text-slate-900 group-hover:text-indigo-600">
                 Full Body Maintainer
               </h3>
               <p className="mt-2 text-sm font-medium text-slate-600">
-                Measure BMI, calories, macros, water, sleep, and follow your every-hour body schedule with live reminders.
+                Calculate BMI, calories, macros, water, sleep, and follow your hourly body needs with live reminders.
               </p>
             </div>
 
             <div
               onClick={() => setActiveNav('about')}
-              className="group cursor-pointer rounded-3xl border-2 border-sky-900 bg-white p-6 shadow-[7px_7px_0px_0px_#0284c7] transition-all hover:-translate-y-1 hover:shadow-[9px_9px_0px_0px_#0c4a6e]"
+              className="group cursor-pointer rounded-3xl border border-white bg-white/85 p-6 shadow-[6px_6px_0px_0px_#fbcfe8] backdrop-blur transition-all hover:-translate-y-1"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-sky-900 bg-cyan-200 text-cyan-950 shadow-[3px_3px_0px_0px_#0c4a6e]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-400 to-rose-500 text-white shadow-md shadow-pink-200">
                 <Users className="h-6 w-6" />
               </div>
-              <h3 className="mt-5 text-xl font-black text-slate-900 group-hover:text-sky-600">
-                🥷 & 🌸 AI Coaches
+              <h3 className="mt-5 text-xl font-black text-slate-900 group-hover:text-rose-600">
+                🥷 &amp; 🌸 AI Coaches
               </h3>
               <p className="mt-2 text-sm font-medium text-slate-600">
-                Pick your Male Ninja or Female AI Coach anytime from the bottom-right corner for instant global fitness guidance.
+                Switch between your Male Ninja or Female AI Coach anytime in the bottom-right corner for instant help.
               </p>
             </div>
           </section>
 
-          {/* Trusted Level Guides Section */}
-          <section className="rounded-3xl border-2 border-sky-900 bg-sky-100/80 p-7 shadow-[8px_8px_0px_0px_#0c4a6e]">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+          {/* Trusted Level Playbooks Banner */}
+          <section className="rounded-[2rem] border border-white bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 p-8 text-white shadow-[8px_8px_0px_0px_#bae6fd]">
+            <div className="flex flex-wrap items-center justify-between gap-6">
               <div>
-                <h3 className="text-2xl font-black text-slate-900">Trusted Level Playbooks</h3>
-                <p className="mt-1 text-sm font-medium text-slate-600">
-                  Take a quick readiness check to unlock the safest structured split for your current strength.
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold backdrop-blur">
+                  <Star className="h-3.5 w-3.5 text-amber-300" /> Readiness Verified
+                </span>
+                <h3 className="mt-3 text-2xl font-black">Trusted Level Playbooks</h3>
+                <p className="mt-1 max-w-xl text-sm font-medium text-sky-100">
+                  Take a quick readiness check to unlock the safest weekly split matched to your current strength.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -232,9 +387,9 @@ export default function HomePage() {
                   <button
                     key={lvl}
                     onClick={() => setGuideLevel(lvl)}
-                    className="flex items-center gap-2 rounded-2xl border-2 border-sky-900 bg-white px-5 py-3 text-xs font-black text-sky-950 shadow-[4px_4px_0px_0px_#0284c7] transition-all hover:-translate-y-0.5 hover:bg-sky-500 hover:text-white"
+                    className="flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-xs font-black text-indigo-700 shadow-[4px_4px_0px_0px_#7dd3fc] transition hover:-translate-y-0.5 hover:bg-sky-50"
                   >
-                    <ShieldCheck className="h-4 w-4" />
+                    <ShieldCheck className="h-4 w-4 text-sky-500" />
                     {lvl} Guide
                   </button>
                 ))}
@@ -254,11 +409,14 @@ export default function HomePage() {
          ========================================================= */}
       {activeNav === 'exercises' && (
         <section className="mx-auto max-w-6xl px-4 py-10">
-          <div className="rounded-3xl border-2 border-sky-900 bg-white p-6 shadow-[8px_8px_0px_0px_#0284c7]">
+          <div className="rounded-3xl border border-white bg-white/85 p-6 shadow-[8px_8px_0px_0px_#bae6fd] backdrop-blur-xl">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-black text-slate-900">
-                  All <span className="text-sky-600">Exercises</span>
+                  All{' '}
+                  <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">
+                    Exercises
+                  </span>
                 </h2>
                 <p className="mt-1 text-sm font-medium text-slate-600">
                   Search across every age group or filter by life stage and gender.
@@ -270,9 +428,9 @@ export default function HomePage() {
                   <button
                     key={lvl}
                     onClick={() => setGuideLevel(lvl)}
-                    className="flex items-center gap-1.5 rounded-xl border-2 border-sky-900 bg-sky-50 px-3 py-2 text-xs font-extrabold text-sky-950 shadow-[3px_3px_0px_0px_#38bdf8] hover:bg-sky-200"
+                    className="flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50/80 px-3.5 py-2 text-xs font-extrabold text-sky-800 hover:bg-sky-100"
                   >
-                    <ShieldCheck className="h-3.5 w-3.5" /> {lvl}
+                    <ShieldCheck className="h-3.5 w-3.5 text-sky-500" /> {lvl}
                   </button>
                 ))}
               </div>
@@ -280,7 +438,7 @@ export default function HomePage() {
 
             {/* Global Search Bar */}
             <div className="relative mt-6">
-              <Search className="absolute left-4 top-3.5 h-5 w-5 text-sky-600" />
+              <Search className="absolute left-4 top-3.5 h-5 w-5 text-sky-500" />
               <input
                 value={search}
                 onChange={(e) => {
@@ -288,7 +446,7 @@ export default function HomePage() {
                   setVisibleCount(24);
                 }}
                 placeholder="Search any exercise across all ages (e.g., Bench Press, Chair, Squat, Frog Jump)..."
-                className="w-full rounded-2xl border-2 border-sky-900 bg-sky-50/40 py-3.5 pl-12 pr-4 text-sm font-bold text-slate-900 shadow-[4px_4px_0px_0px_#bae6fd] outline-none placeholder:text-slate-400 focus:bg-white focus:shadow-[4px_4px_0px_0px_#0284c7]"
+                className="w-full rounded-2xl border border-sky-200 bg-white py-3.5 pl-12 pr-4 text-sm font-semibold text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
               />
             </div>
 
@@ -303,10 +461,10 @@ export default function HomePage() {
                       setSelectedAge(g.id);
                       setVisibleCount(24);
                     }}
-                    className={`rounded-xl border-2 border-sky-900 px-3.5 py-2 text-xs font-extrabold transition-all ${
+                    className={`rounded-xl px-3.5 py-2 text-xs font-extrabold transition-all ${
                       selectedAge === g.id && !search
-                        ? 'bg-sky-500 text-white shadow-[3px_3px_0px_0px_#0c4a6e]'
-                        : 'bg-white text-slate-700 shadow-[2px_2px_0px_0px_#bae6fd] hover:bg-sky-50'
+                        ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-[3px_3px_0px_0px_#bae6fd]'
+                        : 'border border-sky-100 bg-white text-slate-600 hover:bg-sky-50 hover:text-sky-700'
                     }`}
                   >
                     {g.label}
@@ -314,15 +472,15 @@ export default function HomePage() {
                 ))}
               </div>
 
-              <div className="flex gap-1.5 rounded-xl border-2 border-sky-900 bg-sky-50 p-1">
+              <div className="flex gap-1.5 rounded-xl border border-sky-100 bg-sky-50/70 p-1">
                 {['All', 'Male', 'Female'].map((gen) => (
                   <button
                     key={gen}
                     onClick={() => setSelectedGender(gen)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${
+                    className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${
                       selectedGender === gen
-                        ? 'bg-sky-900 text-white'
-                        : 'text-sky-900 hover:bg-sky-200'
+                        ? 'bg-sky-500 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-white'
                     }`}
                   >
                     {gen}
@@ -355,9 +513,9 @@ export default function HomePage() {
                   <div
                     key={ex.id}
                     onClick={() => setActiveExercise(ex)}
-                    className="group cursor-pointer overflow-hidden rounded-2xl border-2 border-sky-900 bg-white shadow-[6px_6px_0px_0px_#38bdf8] transition-all duration-200 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#0284c7]"
+                    className="group cursor-pointer overflow-hidden rounded-3xl border border-white bg-white/90 shadow-[6px_6px_0px_0px_#bae6fd] backdrop-blur transition-all duration-200 hover:-translate-y-1.5 hover:shadow-[8px_8px_0px_0px_#7dd3fc]"
                   >
-                    <div className="relative h-48 w-full overflow-hidden border-b-2 border-sky-900 bg-sky-50">
+                    <div className="relative h-48 w-full overflow-hidden bg-sky-50">
                       {ex.media_url && (
                         <img
                           src={ex.media_url}
@@ -366,26 +524,26 @@ export default function HomePage() {
                           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                         />
                       )}
-                      <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full border-2 border-sky-900 bg-white px-3 py-1 text-[11px] font-black text-sky-900 shadow-[2px_2px_0px_0px_#0c4a6e]">
-                        <PlayCircle className="h-3.5 w-3.5 text-sky-600" /> Live Animation
+                      <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full bg-white/95 px-3 py-1 text-[11px] font-extrabold text-sky-700 shadow-sm">
+                        <PlayCircle className="h-3.5 w-3.5 text-sky-500" /> Live Animation
                       </div>
                     </div>
                     <div className="p-4">
-                      <div className="flex flex-wrap gap-1.5 text-[11px] font-extrabold">
-                        <span className="rounded-lg border border-sky-900 bg-sky-200 px-2 py-0.5 text-sky-950">
+                      <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
+                        <span className="rounded-lg bg-sky-100 px-2.5 py-0.5 text-sky-700">
                           {ex.level}
                         </span>
-                        <span className="rounded-lg bg-sky-50 px-2 py-0.5 text-sky-800">
+                        <span className="rounded-lg bg-indigo-50 px-2.5 py-0.5 text-indigo-700">
                           {ex.muscle_group}
                         </span>
-                        <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-slate-600">
+                        <span className="rounded-lg bg-pink-50 px-2.5 py-0.5 text-rose-600">
                           {ex.equipment}
                         </span>
                       </div>
-                      <h3 className="mt-2.5 text-lg font-black text-slate-900 group-hover:text-sky-600">
+                      <h3 className="mt-2.5 text-lg font-extrabold text-slate-900 group-hover:text-sky-600">
                         {ex.name}
                       </h3>
-                      <p className="mt-1 text-xs font-semibold text-slate-500">
+                      <p className="mt-1 text-xs font-medium text-slate-500">
                         Ages: {ex.age_groups.join(', ')} • {ex.sets_reps}
                       </p>
                     </div>
@@ -397,7 +555,7 @@ export default function HomePage() {
                 <div className="mt-10 text-center">
                   <button
                     onClick={() => setVisibleCount((c) => c + 24)}
-                    className="rounded-2xl border-2 border-sky-900 bg-sky-500 px-8 py-3.5 text-sm font-black text-white shadow-[5px_5px_0px_0px_#0c4a6e] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#0c4a6e]"
+                    className="rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 px-8 py-3.5 text-sm font-extrabold text-white shadow-[5px_5px_0px_0px_#bae6fd] transition hover:-translate-y-0.5"
                   >
                     Load More Workouts ({filtered.length - visibleCount} remaining)
                   </button>
@@ -409,31 +567,31 @@ export default function HomePage() {
       )}
 
       {/* =========================================================
-          PAGE 4: ABOUT (TRENDY DIGITAL OVERVIEW)
+          PAGE 4: ABOUT (SMOOTH COLORFUL OVERVIEW)
          ========================================================= */}
       {activeNav === 'about' && (
         <section className="mx-auto max-w-4xl space-y-8 px-4 py-12">
-          <div className="rounded-3xl border-2 border-sky-900 bg-white p-8 shadow-[9px_9px_0px_0px_#0284c7]">
-            <span className="inline-block rounded-full border-2 border-sky-900 bg-sky-200 px-3.5 py-1 text-xs font-black uppercase text-sky-950">
+          <div className="rounded-[2rem] border border-white bg-white/90 p-8 shadow-[9px_9px_0px_0px_#bae6fd] backdrop-blur-xl sm:p-10">
+            <span className="inline-block rounded-full bg-gradient-to-r from-sky-100 to-pink-100 px-4 py-1.5 text-xs font-extrabold text-indigo-700">
               About FitLife 0–90
             </span>
             <h2 className="mt-4 text-3xl font-black text-slate-900">
-              One Digital Fitness Standard for Every Generation
+              One Lovely Fitness Standard for Every Generation
             </h2>
             <p className="mt-4 text-sm font-medium leading-relaxed text-slate-600">
-              FitLife 0–90 was built to remove guesswork from fitness and daily body care. Whether it is supervised motor play for infants, athletic foundations for teens, full strength & hypertrophy training for adults, or safe chair-assisted mobility for seniors, every movement is organized cleanly by age, equipment, and skill level.
+              FitLife 0–90 was crafted to make daily fitness and body care simple, colorful, and welcoming. Whether it is supervised motor play for infants, athletic foundations for teens, full strength training for adults, or safe chair-assisted mobility for seniors, every movement is organized cleanly by age, equipment, and skill level.
             </p>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border-2 border-sky-900 bg-sky-50 p-5 shadow-[4px_4px_0px_0px_#38bdf8]">
-                <h3 className="text-base font-black text-sky-950">🥷 Male Ninja & 🌸 Female AI</h3>
-                <p className="mt-2 text-xs font-medium text-slate-600">
+            <div className="mt-8 grid gap-5 sm:grid-cols-2">
+              <div className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 to-indigo-50 p-6 shadow-[5px_5px_0px_0px_#bae6fd]">
+                <h3 className="text-base font-black text-indigo-900">🥷 Male Ninja &amp; 🌸 Female AI</h3>
+                <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
                   Choose your preferred AI coach persona anytime for instant form corrections, custom splits, and age-safe modifications.
                 </p>
               </div>
-              <div className="rounded-2xl border-2 border-sky-900 bg-sky-50 p-5 shadow-[4px_4px_0px_0px_#38bdf8]">
-                <h3 className="text-base font-black text-sky-950">⚡ Body Maintainer</h3>
-                <p className="mt-2 text-xs font-medium text-slate-600">
+              <div className="rounded-3xl border border-pink-100 bg-gradient-to-br from-pink-50 to-rose-50 p-6 shadow-[5px_5px_0px_0px_#fbcfe8]">
+                <h3 className="text-base font-black text-rose-900">⚡ Body Maintainer</h3>
+                <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
                   Track BMI, daily calories, macros, water intake, hourly body requirements, and real-time reminders in one place.
                 </p>
               </div>
@@ -444,11 +602,11 @@ export default function HomePage() {
 
       {/* Exercise Details + Live Animation Modal */}
       {activeExercise && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm">
-          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-sky-900 bg-white p-6 text-slate-800 shadow-[10px_10px_0px_0px_#0284c7]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
+          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white bg-white p-6 text-slate-800 shadow-[10px_10px_0px_0px_#bae6fd]">
             <button
               onClick={() => setActiveExercise(null)}
-              className="absolute right-4 top-4 rounded-xl border-2 border-sky-900 bg-sky-50 p-1.5 text-sky-950 hover:bg-sky-200"
+              className="absolute right-4 top-4 rounded-xl bg-sky-50 p-2 text-slate-500 hover:bg-sky-100 hover:text-slate-900"
             >
               <X className="h-5 w-5" />
             </button>
@@ -472,7 +630,7 @@ export default function HomePage() {
               ))}
             </ol>
             {activeExercise.safety_note && (
-              <p className="mt-4 rounded-2xl border-2 border-amber-500 bg-amber-50 p-3.5 text-xs font-bold text-amber-900">
+              <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-xs font-bold text-amber-800">
                 <strong>Safety:</strong> {activeExercise.safety_note}
               </p>
             )}
