@@ -10,6 +10,7 @@ import BloomCoach from '@/components/BloomCoach';
 export default function HomePage() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dbError, setDbError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selectedAge, setSelectedAge] = useState<string>('18-39');
   const [selectedGender, setSelectedGender] = useState<string>('All');
@@ -18,8 +19,12 @@ export default function HomePage() {
 
   useEffect(() => {
     const fetchExercises = async () => {
-      const { data } = await supabase.from('exercises').select('*').order('name');
-      if (data) setExercises(data as Exercise[]);
+      const { data, error } = await supabase.from('exercises').select('*').order('name');
+      if (error) {
+        setDbError(error.message);
+      } else if (data) {
+        setExercises(data as Exercise[]);
+      }
       setLoading(false);
     };
     fetchExercises();
@@ -138,6 +143,8 @@ export default function HomePage() {
         {/* Exercise Grid */}
         {loading ? (
           <p className="mt-12 text-center text-sm text-zinc-400">Loading exercises from Supabase...</p>
+        ) : dbError ? (
+          <p className="mt-12 text-center text-sm text-rose-400">Supabase Error: {dbError}</p>
         ) : filtered.length === 0 ? (
           <p className="mt-12 text-center text-sm text-zinc-400">No exercises found. Try another search or age group.</p>
         ) : (

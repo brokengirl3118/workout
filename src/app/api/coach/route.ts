@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
@@ -8,34 +7,21 @@ export async function POST(req: Request) {
 
     if (!apiKey) {
       return NextResponse.json(
-        { reply: 'Please add your GEMINI_API_KEY in Vercel Environment Variables to activate 🌸 AI Coach.' },
+        { reply: 'Missing GEMINI_API_KEY in Vercel Environment Variables.' },
         { status: 500 }
       );
     }
 
-    // Fetch matching exercises from Supabase so 🌸 can reference site exercises
-    const { data: matchedExercises } = await supabase
-      .from('exercises')
-      .select('name, age_groups, level, muscle_group, sets_reps')
-      .ilike('name', `%${message.split(' ').slice(0, 3).join(' ')}%`)
-      .limit(3);
-
     const personaTone =
       coachGender === 'male'
-        ? 'You are 🌸 (Male AI Coach version) — energetic, structured, encouraging, and direct.'
-        : 'You are 🌸 (Female AI Coach version) — supportive, sharp, motivating, and detail-oriented.';
+        ? 'You are 🌸 (Male AI Coach) — energetic, direct, and concise.'
+        : 'You are 🌸 (Female AI Coach) — supportive, sharp, and concise.';
 
     const systemPrompt = `${personaTone}
-You have complete global expertise in every workout, gym lift, calisthenics move, yoga/Pilates pose, kids motor drill (0-12), teen athletic training (13-17), adult fitness (18-59), and senior chair/mobility exercise (60-90).
-Always provide:
-1. Genuine exercise names & target muscles
-2. Clear step-by-step form cues & breathing
-3. Recommended sets/reps & age-safe modifications
-4. Short safety tips. Keep responses well-formatted and practical.
-Site database matches (mention if relevant): ${JSON.stringify(matchedExercises || [])}`;
+You are a global workout expert for ages 0–90. Keep replies short, fast, and practical (under 120 words unless asked for a full plan). Include genuine exercise names, sets/reps, and key form cues.`;
 
     const contents = [
-      ...(history || []).slice(-6).map((m: { role: string; text: string }) => ({
+      ...(history || []).slice(-4).map((m: { role: string; text: string }) => ({
         role: m.role === 'user' ? 'user' : 'model',
         parts: [{ text: m.text }],
       })),
@@ -53,6 +39,10 @@ Site database matches (mention if relevant): ${JSON.stringify(matchedExercises |
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemPrompt }] },
           contents,
+          generationConfig: {
+            maxOutputTokens: 300,
+            temperature: 0.7,
+          },
         }),
       }
     );
@@ -72,7 +62,7 @@ Site database matches (mention if relevant): ${JSON.stringify(matchedExercises |
     return NextResponse.json({ reply });
   } catch (err) {
     return NextResponse.json(
-      { reply: `Server Error: ${err instanceof Error ? err.message : 'Check your GEMINI_API_KEY and try again.'}` },
+      { reply: `Server Error: ${err instanceof Error ? err.message : 'Try again.'}` },
       { status: 500 }
     );
   }
