@@ -22,9 +22,18 @@ import {
   Baby,
   Smile,
   Award,
+  RotateCcw,
 } from 'lucide-react';
 import { supabase, Exercise } from '@/lib/supabase';
 import { AGE_GROUPS, LevelKey } from '@/lib/data';
+import {
+  BODY_PART_CATEGORIES,
+  TARGET_GOALS,
+  TIME_OF_DAY_OPTIONS,
+  matchesBodyPart,
+  matchesTargetGoal,
+  matchesTimeOfDay,
+} from '@/lib/exerciseFilters';
 import LevelGuideModal from '@/components/LevelGuideModal';
 import BloomCoach from '@/components/BloomCoach';
 import ExerciseAnimator from '@/components/ExerciseAnimator';
@@ -37,9 +46,16 @@ export default function HomePage() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
+
+  // Filters
   const [search, setSearch] = useState('');
   const [selectedAge, setSelectedAge] = useState<string>('18-39');
   const [selectedGender, setSelectedGender] = useState<string>('All');
+  const [selectedBodyPart, setSelectedBodyPart] = useState<string>('all');
+  const [selectedMuscle, setSelectedMuscle] = useState<string>('all');
+  const [selectedGoal, setSelectedGoal] = useState<string>('all');
+  const [selectedTime, setSelectedTime] = useState<string>('all');
+
   const [visibleCount, setVisibleCount] = useState<number>(24);
   const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
   const [guideLevel, setGuideLevel] = useState<LevelKey | null>(null);
@@ -61,6 +77,9 @@ export default function HomePage() {
     };
     fetchAllExercises();
   }, []);
+
+  const activeBodyGroup = BODY_PART_CATEGORIES.find((b) => b.id === selectedBodyPart);
+  const activeGoalObj = TARGET_GOALS.find((g) => g.id === selectedGoal);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -84,15 +103,42 @@ export default function HomePage() {
       if (selectedGender !== 'All') {
         if (ex.gender_focus !== 'Unisex' && ex.gender_focus !== selectedGender) return false;
       }
+
+      if (!matchesBodyPart(ex, selectedBodyPart, selectedMuscle)) return false;
+      if (!matchesTargetGoal(ex, selectedGoal)) return false;
+      if (!matchesTimeOfDay(ex, selectedTime)) return false;
+
       return true;
     });
-  }, [exercises, search, selectedAge, selectedGender]);
+  }, [
+    exercises,
+    search,
+    selectedAge,
+    selectedGender,
+    selectedBodyPart,
+    selectedMuscle,
+    selectedGoal,
+    selectedTime,
+  ]);
 
   const visibleExercises = filtered.slice(0, visibleCount);
+
+  const resetAllFilters = () => {
+    setSearch('');
+    setSelectedAge('all');
+    setSelectedGender('All');
+    setSelectedBodyPart('all');
+    setSelectedMuscle('all');
+    setSelectedGoal('all');
+    setSelectedTime('all');
+    setVisibleCount(24);
+  };
 
   const jumpToAge = (ageId: string) => {
     setSearch('');
     setSelectedAge(ageId);
+    setSelectedBodyPart('all');
+    setSelectedMuscle('all');
     setVisibleCount(24);
     setActiveNav('exercises');
   };
@@ -163,10 +209,8 @@ export default function HomePage() {
          ========================================================= */}
       {activeNav === 'home' && (
         <div className="mx-auto max-w-6xl space-y-12 px-4 py-10">
-          {/* Decorative 2-Column Hero */}
           <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-gradient-to-br from-white/90 via-sky-50/85 to-indigo-50/85 p-8 shadow-[10px_10px_0px_0px_#bae6fd] backdrop-blur-xl sm:p-12">
             <div className="grid items-center gap-10 lg:grid-cols-12">
-              {/* Left Text Column */}
               <div className="lg:col-span-7">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-sky-100 via-indigo-100 to-pink-100 px-4 py-1.5 text-xs font-extrabold text-indigo-700 ring-1 ring-indigo-200/80">
                   <Sparkles className="h-3.5 w-3.5 text-sky-500" />
@@ -201,7 +245,6 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Right Decorative Visual Showcase Card */}
               <div className="lg:col-span-5">
                 <div className="relative rounded-3xl border border-white bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-500 p-6 text-white shadow-[8px_8px_0px_0px_#c7d2fe]">
                   <div className="flex items-center justify-between">
@@ -237,7 +280,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* Interactive Life-Stage Journey (Clicks into All Exercises) */}
+          {/* Interactive Life-Stage Journey */}
           <section className="space-y-5">
             <div className="flex flex-wrap items-end justify-between gap-2">
               <div>
@@ -405,11 +448,11 @@ export default function HomePage() {
       {activeNav === 'maintainer' && <MaintainerView />}
 
       {/* =========================================================
-          PAGE 3: ALL EXERCISES (FULL LIBRARY + LIVE ANIMATION)
+          PAGE 3: ALL EXERCISES (BODY PARTS, A-Z MUSCLES, GOALS, TIME)
          ========================================================= */}
       {activeNav === 'exercises' && (
         <section className="mx-auto max-w-6xl px-4 py-10">
-          <div className="rounded-3xl border border-white bg-white/85 p-6 shadow-[8px_8px_0px_0px_#bae6fd] backdrop-blur-xl">
+          <div className="space-y-5 rounded-3xl border border-white bg-white/90 p-6 shadow-[8px_8px_0px_0px_#bae6fd] backdrop-blur-xl">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-black text-slate-900">
@@ -419,16 +462,22 @@ export default function HomePage() {
                   </span>
                 </h2>
                 <p className="mt-1 text-sm font-medium text-slate-600">
-                  Search across every age group or filter by life stage and gender.
+                  Filter by Body Part, A–Z Muscle, Target Goal, Time of Day, and Age.
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={resetAllFilters}
+                  className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-extrabold text-rose-600 hover:bg-rose-100"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Reset Filters
+                </button>
                 {(['Beginner', 'Intermediate', 'Advanced'] as LevelKey[]).map((lvl) => (
                   <button
                     key={lvl}
                     onClick={() => setGuideLevel(lvl)}
-                    className="flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50/80 px-3.5 py-2 text-xs font-extrabold text-sky-800 hover:bg-sky-100"
+                    className="flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 text-xs font-extrabold text-sky-800 hover:bg-sky-100"
                   >
                     <ShieldCheck className="h-3.5 w-3.5 text-sky-500" /> {lvl}
                   </button>
@@ -437,7 +486,7 @@ export default function HomePage() {
             </div>
 
             {/* Global Search Bar */}
-            <div className="relative mt-6">
+            <div className="relative">
               <Search className="absolute left-4 top-3.5 h-5 w-5 text-sky-500" />
               <input
                 value={search}
@@ -445,14 +494,136 @@ export default function HomePage() {
                   setSearch(e.target.value);
                   setVisibleCount(24);
                 }}
-                placeholder="Search any exercise across all ages (e.g., Bench Press, Chair, Squat, Frog Jump)..."
+                placeholder="Search any exercise or muscle (e.g., Hamstrings, Bench Press, Calves, Squat)..."
                 className="w-full rounded-2xl border border-sky-200 bg-white py-3.5 pl-12 pr-4 text-sm font-semibold text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
               />
             </div>
 
-            {/* Age & Gender Filters */}
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+            {/* 1. BODY PARTS SELECTOR */}
+            <div>
+              <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-sky-700">
+                1. Choose Body Part
+              </p>
               <div className="flex flex-wrap gap-2">
+                {BODY_PART_CATEGORIES.map((bp) => (
+                  <button
+                    key={bp.id}
+                    onClick={() => {
+                      setSelectedBodyPart(bp.id);
+                      setSelectedMuscle('all');
+                      setVisibleCount(24);
+                    }}
+                    className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-extrabold transition-all ${
+                      selectedBodyPart === bp.id
+                        ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-[3px_3px_0px_0px_#bae6fd]'
+                        : 'border border-sky-100 bg-sky-50/50 text-slate-700 hover:bg-sky-100'
+                    }`}
+                  >
+                    <span>{bp.emoji}</span> {bp.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. A-Z SPECIFIC MUSCLES FOR CHOSEN BODY PART */}
+            {activeBodyGroup && activeBodyGroup.muscles.length > 0 && (
+              <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-3.5">
+                <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-indigo-700">
+                  {activeBodyGroup.label} — A to Z Muscles
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedMuscle('all');
+                      setVisibleCount(24);
+                    }}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${
+                      selectedMuscle === 'all'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white text-indigo-800 hover:bg-indigo-100'
+                    }`}
+                  >
+                    All {activeBodyGroup.label}
+                  </button>
+                  {activeBodyGroup.muscles.map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => {
+                        setSelectedMuscle(m);
+                        setVisibleCount(24);
+                      }}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${
+                        selectedMuscle === m
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'bg-white text-indigo-800 hover:bg-indigo-100'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 3. TARGET GOAL & 4. TIME OF DAY */}
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div>
+                <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-rose-600">
+                  2. Target Goal (Bulky, Cuts, Strength...)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {TARGET_GOALS.map((g) => (
+                    <button
+                      key={g.id}
+                      onClick={() => {
+                        setSelectedGoal(g.id);
+                        setVisibleCount(24);
+                      }}
+                      className={`rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
+                        selectedGoal === g.id
+                          ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-[3px_3px_0px_0px_#fbcfe8]'
+                          : 'border border-pink-100 bg-pink-50/50 text-rose-800 hover:bg-pink-100'
+                      }`}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+                {activeGoalObj && activeGoalObj.tip && (
+                  <p className="mt-2 text-xs font-bold text-rose-600">
+                    Recommended Tempo: {activeGoalObj.tip}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-teal-700">
+                  3. Time of Day (Morning, Afternoon, Evening, Night)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {TIME_OF_DAY_OPTIONS.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => {
+                        setSelectedTime(t.id);
+                        setVisibleCount(24);
+                      }}
+                      className={`flex items-center gap-1 rounded-xl px-3.5 py-1.5 text-xs font-extrabold transition ${
+                        selectedTime === t.id
+                          ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-[3px_3px_0px_0px_#99f6e4]'
+                          : 'border border-teal-100 bg-teal-50/50 text-teal-900 hover:bg-teal-100'
+                      }`}
+                    >
+                      <span>{t.emoji}</span> {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 4. AGE & GENDER */}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-sky-100 pt-4">
+              <div className="flex flex-wrap gap-1.5">
                 {AGE_GROUPS.map((g) => (
                   <button
                     key={g.id}
@@ -461,10 +632,10 @@ export default function HomePage() {
                       setSelectedAge(g.id);
                       setVisibleCount(24);
                     }}
-                    className={`rounded-xl px-3.5 py-2 text-xs font-extrabold transition-all ${
+                    className={`rounded-lg px-3 py-1.5 text-[11px] font-extrabold transition-all ${
                       selectedAge === g.id && !search
-                        ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-[3px_3px_0px_0px_#bae6fd]'
-                        : 'border border-sky-100 bg-white text-slate-600 hover:bg-sky-50 hover:text-sky-700'
+                        ? 'bg-sky-600 text-white'
+                        : 'border border-sky-100 bg-white text-slate-600 hover:bg-sky-50'
                     }`}
                   >
                     {g.label}
@@ -472,12 +643,12 @@ export default function HomePage() {
                 ))}
               </div>
 
-              <div className="flex gap-1.5 rounded-xl border border-sky-100 bg-sky-50/70 p-1">
+              <div className="flex gap-1 rounded-xl border border-sky-100 bg-sky-50/70 p-1">
                 {['All', 'Male', 'Female'].map((gen) => (
                   <button
                     key={gen}
                     onClick={() => setSelectedGender(gen)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${
+                    className={`rounded-lg px-3 py-1 text-xs font-extrabold transition ${
                       selectedGender === gen
                         ? 'bg-sky-500 text-white shadow-sm'
                         : 'text-slate-600 hover:bg-white'
@@ -500,13 +671,21 @@ export default function HomePage() {
               Supabase Error: {dbError}
             </p>
           ) : filtered.length === 0 ? (
-            <p className="mt-12 text-center text-sm font-bold text-slate-500">
-              No exercises found. Try another search or age group.
-            </p>
+            <div className="mt-12 text-center">
+              <p className="text-sm font-bold text-slate-500">
+                No exercises matched this exact filter combination.
+              </p>
+              <button
+                onClick={resetAllFilters}
+                className="mt-3 rounded-xl bg-sky-500 px-4 py-2 text-xs font-extrabold text-white hover:bg-sky-600"
+              >
+                Reset All Filters
+              </button>
+            </div>
           ) : (
             <>
               <p className="mt-6 text-xs font-extrabold uppercase tracking-wider text-sky-800">
-                Showing {visibleExercises.length} of {filtered.length} workouts — click any card for live animation
+                Showing {visibleExercises.length} of {filtered.length} matching workouts — click any card for live animation
               </p>
               <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {visibleExercises.map((ex) => (
@@ -579,7 +758,7 @@ export default function HomePage() {
               One Lovely Fitness Standard for Every Generation
             </h2>
             <p className="mt-4 text-sm font-medium leading-relaxed text-slate-600">
-              FitLife 0–90 was crafted to make daily fitness and body care simple, colorful, and welcoming. Whether it is supervised motor play for infants, athletic foundations for teens, full strength training for adults, or safe chair-assisted mobility for seniors, every movement is organized cleanly by age, equipment, and skill level.
+              FitLife 0–90 was crafted to make daily fitness and body care simple, colorful, and welcoming. Whether it is supervised motor play for infants, athletic foundations for teens, full strength training for adults, or safe chair-assisted mobility for seniors, every movement is organized cleanly by body part, muscle, goal, time of day, and age.
             </p>
 
             <div className="mt-8 grid gap-5 sm:grid-cols-2">
