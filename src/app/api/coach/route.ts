@@ -16,8 +16,8 @@ export async function POST(req: Request) {
 
     const personaTone =
       coachGender === 'male'
-        ? 'You are 🌸 (Male AI Coach) — energetic, direct, and concise.'
-        : 'You are 🌸 (Female AI Coach) — supportive, sharp, and concise.';
+        ? 'You are 🥷 (Male Ninja AI Coach) — energetic, disciplined, direct, and concise.'
+        : 'You are 🌸 (Female AI Coach) — supportive, sharp, warm, and concise.';
 
     const systemPrompt = `${personaTone}
 You are a global workout expert for ages 0–90. Keep replies short, fast, and practical (under 120 words unless asked for a full plan). Include genuine exercise names, sets/reps, and key form cues.`;

@@ -33,23 +33,22 @@ export default function LevelGuideModal({ selectedLevel, onClose }: Props) {
   const guide = activeGuide ? TRUSTED_GUIDES[activeGuide] : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="relative max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-zinc-100 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
+      <div className="relative max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-sky-100 bg-white p-6 text-slate-800 shadow-2xl">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          className="absolute right-4 top-4 rounded-xl bg-sky-50 p-2 text-slate-500 hover:bg-sky-100 hover:text-slate-800"
         >
           <X className="h-5 w-5" />
         </button>
 
-        {/* Step 1: Readiness Check for Intermediate / Advanced */}
         {!guide && !recommendation && selectedLevel !== 'Beginner' && (
           <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-sky-700">
               <Award className="h-4 w-4" /> {selectedLevel} Readiness Check
             </div>
-            <h2 className="text-xl font-bold">Quick Exercise Check</h2>
-            <p className="mt-1 text-sm text-zinc-400">
+            <h2 className="text-xl font-extrabold text-slate-900">Quick Exercise Check</h2>
+            <p className="mt-1 text-sm text-slate-500">
               Answer honestly so we can match you to the safest, most effective guide.
             </p>
 
@@ -57,26 +56,26 @@ export default function LevelGuideModal({ selectedLevel, onClose }: Props) {
               {questions.map((q, idx) => (
                 <div
                   key={idx}
-                  className="flex flex-col justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 sm:flex-row sm:items-center"
+                  className="flex flex-col justify-between gap-3 rounded-2xl border border-sky-100 bg-sky-50/50 p-4 sm:flex-row sm:items-center"
                 >
-                  <p className="text-sm text-zinc-200">{q}</p>
+                  <p className="text-sm font-medium text-slate-700">{q}</p>
                   <div className="flex shrink-0 gap-2">
                     <button
                       onClick={() => setAnswers((p) => ({ ...p, [idx]: true }))}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                      className={`rounded-xl px-3.5 py-1.5 text-xs font-bold ${
                         answers[idx] === true
-                          ? 'bg-emerald-500 text-black'
-                          : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                          ? 'bg-sky-500 text-white'
+                          : 'bg-white text-slate-600 border border-sky-200 hover:bg-sky-100'
                       }`}
                     >
                       Yes
                     </button>
                     <button
                       onClick={() => setAnswers((p) => ({ ...p, [idx]: false }))}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                      className={`rounded-xl px-3.5 py-1.5 text-xs font-bold ${
                         answers[idx] === false
                           ? 'bg-rose-500 text-white'
-                          : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                          : 'bg-white text-slate-600 border border-sky-200 hover:bg-sky-100'
                       }`}
                     >
                       No
@@ -89,33 +88,32 @@ export default function LevelGuideModal({ selectedLevel, onClose }: Props) {
             <button
               onClick={handleVerify}
               disabled={Object.keys(answers).length < questions.length}
-              className="mt-6 w-full rounded-xl bg-emerald-500 py-3 text-sm font-bold text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-6 w-full rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 py-3 text-sm font-bold text-white shadow-md shadow-sky-200 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Check My Level
             </button>
           </div>
         )}
 
-        {/* Step 2: Safety Recommendation if score < 3 */}
         {!guide && recommendation && (
-          <div className="text-center">
-            <AlertTriangle className="mx-auto h-12 w-12 text-amber-400" />
-            <h2 className="mt-3 text-xl font-bold">
+          <div className="py-4 text-center">
+            <AlertTriangle className="mx-auto h-12 w-12 text-amber-500" />
+            <h2 className="mt-3 text-xl font-extrabold text-slate-900">
               We Recommend Starting with {recommendation}
             </h2>
-            <p className="mt-2 text-sm text-zinc-400">
+            <p className="mt-2 text-sm text-slate-500">
               Building a stronger base first prevents joint injuries and gives faster results.
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <button
                 onClick={() => setActiveGuide(recommendation)}
-                className="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-black hover:bg-emerald-400"
+                className="rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-sky-200"
               >
                 Open {recommendation} Guide
               </button>
               <button
                 onClick={() => setActiveGuide(selectedLevel)}
-                className="rounded-xl border border-zinc-700 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:bg-zinc-800"
+                className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-2.5 text-sm font-bold text-sky-700 hover:bg-sky-100"
               >
                 Continue to {selectedLevel} Anyway
               </button>
@@ -123,32 +121,31 @@ export default function LevelGuideModal({ selectedLevel, onClose }: Props) {
           </div>
         )}
 
-        {/* Step 3: Full Trusted Guide */}
         {guide && (
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-400">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-sky-700">
               <CheckCircle2 className="h-4 w-4" /> Verified Guide
             </span>
-            <h2 className="mt-2 text-2xl font-bold">{guide.title}</h2>
-            <p className="mt-1 text-sm font-medium text-emerald-400">{guide.split}</p>
+            <h2 className="mt-2 text-2xl font-extrabold text-slate-900">{guide.title}</h2>
+            <p className="mt-1 text-sm font-semibold text-sky-600">{guide.split}</p>
 
-            <h3 className="mt-5 text-sm font-bold uppercase tracking-wider text-zinc-400">
+            <h3 className="mt-5 text-xs font-bold uppercase tracking-wider text-slate-400">
               Core Rules
             </h3>
-            <ul className="mt-2 space-y-2 text-sm text-zinc-200">
+            <ul className="mt-2 space-y-2 text-sm text-slate-700">
               {guide.rules.map((r, i) => (
-                <li key={i} className="rounded-lg bg-zinc-900 px-3 py-2">
+                <li key={i} className="rounded-xl bg-sky-50 px-3.5 py-2.5">
                   • {r}
                 </li>
               ))}
             </ul>
 
-            <h3 className="mt-5 text-sm font-bold uppercase tracking-wider text-zinc-400">
+            <h3 className="mt-5 text-xs font-bold uppercase tracking-wider text-slate-400">
               Weekly Structure
             </h3>
-            <ul className="mt-2 space-y-2 text-sm text-zinc-200">
+            <ul className="mt-2 space-y-2 text-sm text-slate-700">
               {guide.weeklyPlan.map((d, i) => (
-                <li key={i} className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2">
+                <li key={i} className="rounded-xl border border-sky-100 bg-white px-3.5 py-2.5 shadow-sm">
                   {d}
                 </li>
               ))}

@@ -36,9 +36,8 @@ export default function ExerciseAnimator({ name, frame1, frame2 }: Props) {
   )}`;
 
   return (
-    <div className="mt-4 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
-      {/* Smooth Dual-Layer Crossfade Animation */}
-      <div className="relative h-64 w-full overflow-hidden bg-black">
+    <div className="mt-4 overflow-hidden rounded-2xl border border-sky-100 bg-sky-50/40 shadow-sm">
+      <div className="relative h-64 w-full overflow-hidden bg-gradient-to-b from-sky-100/50 to-white">
         {frame1 ? (
           <>
             <img
@@ -63,16 +62,15 @@ export default function ExerciseAnimator({ name, frame1, frame2 }: Props) {
             )}
           </>
         ) : (
-          <div className="flex h-full items-center justify-center text-xs text-zinc-500">
+          <div className="flex h-full items-center justify-center text-xs text-slate-400">
             No animation preview available
           </div>
         )}
 
-        {/* Live Phase & Breathing Cue */}
-        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/80 px-3 py-1 text-[11px] font-bold text-emerald-400 backdrop-blur">
+        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-sky-700 shadow-sm backdrop-blur">
           <span
             className={`h-2 w-2 rounded-full ${
-              playing ? 'animate-pulse bg-emerald-400' : 'bg-zinc-500'
+              playing ? 'animate-pulse bg-sky-500' : 'bg-slate-400'
             }`}
           />
           {playing
@@ -82,40 +80,37 @@ export default function ExerciseAnimator({ name, frame1, frame2 }: Props) {
             : 'PAUSED'}
         </div>
 
-        {/* Live Rep Counter */}
-        <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-black/80 px-3 py-1 text-[11px] font-bold text-white backdrop-blur">
-          Reps: <span className="text-emerald-400">{reps}</span>
+        <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-slate-700 shadow-sm backdrop-blur">
+          Reps: <span className="text-sky-600">{reps}</span>
           <button
             onClick={() => setReps(0)}
             title="Reset Reps"
-            className="ml-1 text-zinc-400 hover:text-white"
+            className="ml-1 text-slate-400 hover:text-sky-600"
           >
             <RotateCcw className="h-3 w-3" />
           </button>
         </div>
 
-        {/* Motion Progress Bar */}
-        <div className="absolute bottom-0 left-0 h-1 w-full bg-zinc-800">
+        <div className="absolute bottom-0 left-0 h-1 w-full bg-sky-100">
           <div
-            className={`h-full bg-emerald-400 transition-all duration-500 ${
+            className={`h-full bg-sky-500 transition-all duration-500 ${
               frame === 1 ? 'w-full' : 'w-1/3'
             }`}
           />
         </div>
       </div>
 
-      {/* Animation Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 px-3 py-2 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-sky-100 bg-white px-3 py-2.5 text-xs">
         <button
           onClick={() => setPlaying((p) => !p)}
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 py-1.5 font-bold text-emerald-400 hover:bg-emerald-500/25"
+          className="flex items-center gap-1.5 rounded-xl bg-sky-100 px-3 py-1.5 font-bold text-sky-700 hover:bg-sky-200"
         >
           {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
           {playing ? 'Pause' : 'Play'}
         </button>
 
-        <div className="flex items-center gap-1 text-zinc-400">
-          <Gauge className="h-3.5 w-3.5" />
+        <div className="flex items-center gap-1 text-slate-500">
+          <Gauge className="h-3.5 w-3.5 text-sky-500" />
           {[
             { label: 'Slow', ms: 1300 },
             { label: 'Normal', ms: 900 },
@@ -124,8 +119,8 @@ export default function ExerciseAnimator({ name, frame1, frame2 }: Props) {
             <button
               key={s.label}
               onClick={() => setSpeedMs(s.ms)}
-              className={`rounded-md px-2 py-1 font-semibold ${
-                speedMs === s.ms ? 'bg-zinc-700 text-white' : 'hover:bg-zinc-800'
+              className={`rounded-lg px-2 py-1 font-semibold ${
+                speedMs === s.ms ? 'bg-sky-500 text-white' : 'hover:bg-sky-50'
               }`}
             >
               {s.label}
@@ -137,7 +132,7 @@ export default function ExerciseAnimator({ name, frame1, frame2 }: Props) {
           href={videoSearchUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 rounded-lg bg-rose-500/15 px-2.5 py-1.5 font-bold text-rose-400 hover:bg-rose-500/25"
+          className="flex items-center gap-1 rounded-xl bg-rose-50 px-2.5 py-1.5 font-bold text-rose-600 hover:bg-rose-100"
         >
           <Video className="h-3.5 w-3.5" /> Live Video
         </a>
