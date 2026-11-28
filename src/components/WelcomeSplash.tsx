@@ -34,16 +34,8 @@ export default function WelcomeSplash() {
         </div>
 
         <h1 className="mt-5 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-          Welcome{' '}
           <span className="bg-gradient-to-r from-sky-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">
-            Harsh
-          </span>
-          <span className="inline-flex text-pink-400">
-            <span className="animate-pulse">.</span>
-            <span className="animate-pulse [animation-delay:150ms]">.</span>
-            <span className="animate-pulse [animation-delay:300ms]">.</span>
-            <span className="animate-pulse [animation-delay:450ms]">.</span>
-            <span className="animate-pulse [animation-delay:600ms]">.</span>
+            Welcome
           </span>
         </h1>
 
@@ -52,6 +44,7 @@ export default function WelcomeSplash() {
         </p>
 
         <button
+          type="button"
           onClick={dismiss}
           className="matte-pill mt-6 inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-xs font-bold text-sky-300 transition hover:scale-105 hover:text-white"
         >
