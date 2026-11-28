@@ -45,7 +45,12 @@ import {
   matchesTargetGoal,
   matchesTimeOfDay,
 } from '@/lib/exerciseFilters';
-import { WELLNESS_TOOLS, TOOL_CATEGORIES, ToolCategory, WellnessTool } from '@/lib/wellnessToolsData';
+import {
+  WELLNESS_TOOLS,
+  TOOL_CATEGORIES,
+  ToolCategory,
+  WellnessTool,
+} from '@/lib/wellnessToolsData';
 import { EXTRA_UNIQUE_FEATURES } from '@/lib/extraUniqueFeatures';
 import LevelGuideModal from '@/components/LevelGuideModal';
 import BloomCoach from '@/components/BloomCoach';
@@ -122,7 +127,6 @@ export default function HomePage() {
   const [quickTool, setQuickTool] = useState<WellnessTool | null>(null);
   const [xp, setXp] = useState<number>(0);
 
-  // Account & Notifications State
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [alerts, setAlerts] = useState<AlertEntry[]>([
@@ -135,11 +139,9 @@ export default function HomePage() {
     },
   ]);
 
-  // Theme & Nutrition Guide State
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [nutritionOpen, setNutritionOpen] = useState(false);
 
-  // Daily Home Features State
   const [streak, setStreak] = useState<number>(1);
   const [mood, setMood] = useState<MoodKey | null>(null);
   const [waterGlasses, setWaterGlasses] = useState<number>(0);
@@ -147,12 +149,10 @@ export default function HomePage() {
   const [breathOn, setBreathOn] = useState<boolean>(false);
   const [breathTick, setBreathTick] = useState<number>(0);
 
-  // Exercises State
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
 
-  // Filters
   const [search, setSearch] = useState('');
   const [selectedAge, setSelectedAge] = useState<string>('all');
   const [selectedGender, setSelectedGender] = useState<string>('All');
@@ -167,7 +167,10 @@ export default function HomePage() {
   const [guideLevel, setGuideLevel] = useState<LevelKey | null>(null);
 
   const pushAlert = (title: string, detail: string) => {
-    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const nowTime = new Date().toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
     setAlerts((prev) => [
       { id: `${Date.now()}-${Math.random()}`, title, detail, time: nowTime, read: false },
       ...prev.slice(0, 29),
@@ -230,7 +233,9 @@ export default function HomePage() {
     } else {
       const prev = new Date(lastVisit);
       const now = new Date(today);
-      const diffDays = Math.round((now.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+      const diffDays = Math.round(
+        (now.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24)
+      );
       const nextStreak = diffDays === 1 ? savedStreak + 1 : 1;
       setStreak(nextStreak);
       localStorage.setItem('fitlife_streak', String(nextStreak));
@@ -296,7 +301,9 @@ export default function HomePage() {
       localStorage.setItem('fitlife_favorites', JSON.stringify(updated));
       pushAlert(
         exists ? 'Removed Favorite' : 'Saved Favorite',
-        name ? `${name} ${exists ? 'removed from' : 'added to'} Saved Moves.` : 'Updated Saved Moves.'
+        name
+          ? `${name} ${exists ? 'removed from' : 'added to'} Saved Moves.`
+          : 'Updated Saved Moves.'
       );
       return updated;
     });
@@ -536,7 +543,6 @@ export default function HomePage() {
          ========================================================= */}
       {activeNav === 'home' && (
         <div className="animate-step-open mx-auto max-w-5xl space-y-7 px-4 py-7">
-          {/* 1. AGE GROUPS AT TOP */}
           <StepReveal className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-extrabold text-[var(--text-primary)]">Age Groups</h2>
@@ -593,7 +599,9 @@ export default function HomePage() {
                     className="matte-box group cursor-pointer rounded-2xl p-4 transition hover:-translate-y-1"
                   >
                     <div className="flex items-center justify-between">
-                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${card.badge}`}>
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${card.badge}`}
+                      >
                         {card.ages}
                       </span>
                       <Icon className="h-4 w-4 text-[var(--text-muted)] group-hover:text-sky-400" />
@@ -608,7 +616,6 @@ export default function HomePage() {
             </div>
           </StepReveal>
 
-          {/* 2. DAILY ESSENTIALS */}
           <StepReveal delayMs={60} className="grid gap-3.5 md:grid-cols-3">
             <div className="matte-box-soft flex flex-col justify-between rounded-2xl p-4">
               <div className="flex items-center justify-between">
@@ -696,7 +703,6 @@ export default function HomePage() {
             </div>
           </StepReveal>
 
-          {/* 3. MOOD CHECK-IN */}
           <StepReveal delayMs={100} className="matte-box-soft rounded-2xl p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs font-extrabold text-[var(--text-primary)]">
@@ -732,7 +738,9 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={() => {
-                    const target = WELLNESS_TOOLS.find((t) => t.id === MOOD_PRESETS[mood].toolId);
+                    const target = WELLNESS_TOOLS.find(
+                      (t) => t.id === MOOD_PRESETS[mood].toolId
+                    );
                     if (target) setQuickTool(target);
                   }}
                   className="rounded-lg bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-400 hover:bg-sky-500/30"
@@ -743,7 +751,6 @@ export default function HomePage() {
             )}
           </StepReveal>
 
-          {/* 4. SAVED FAVORITES */}
           {favoriteExercises.length > 0 && (
             <StepReveal className="space-y-3">
               <div className="flex items-center justify-between">
@@ -781,7 +788,6 @@ export default function HomePage() {
             </StepReveal>
           )}
 
-          {/* 5. MAIN ACTION BANNER */}
           <StepReveal className="matte-box rounded-3xl p-6">
             <div className="flex flex-wrap items-center justify-between gap-5">
               <div>
@@ -792,7 +798,8 @@ export default function HomePage() {
                   </span>
                 </h2>
                 <p className="mt-1.5 max-w-md text-xs text-[var(--text-secondary)]">
-                  Animated workouts, calories &amp; protein meal combos, timers, and 🥷 &amp; 🌸 coaches.
+                  Animated workouts, calories &amp; protein meal combos, timers, and 🥷 &amp; 🌸
+                  coaches.
                 </p>
               </div>
 
@@ -822,7 +829,6 @@ export default function HomePage() {
             </div>
           </StepReveal>
 
-          {/* 6. QUICK TOOLS GRID */}
           <StepReveal className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-extrabold text-[var(--text-primary)]">Quick Tools</h3>
@@ -857,7 +863,6 @@ export default function HomePage() {
             </div>
           </StepReveal>
 
-          {/* 7. TOOL CATEGORIES */}
           <StepReveal className="matte-box rounded-3xl p-5">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-extrabold text-[var(--text-primary)]">Categories</h3>
@@ -890,7 +895,6 @@ export default function HomePage() {
             </div>
           </StepReveal>
 
-          {/* 8. LEVEL GUIDES */}
           <StepReveal className="matte-box rounded-3xl p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -917,7 +921,6 @@ export default function HomePage() {
             </div>
           </StepReveal>
 
-          {/* 9. UNIQUE HOME DAILY EXTRAS (IDs 100 - 120) */}
           <StepReveal className="space-y-3">
             <h3 className="text-lg font-extrabold text-[var(--text-primary)]">Daily Extras</h3>
             <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3">
@@ -1078,7 +1081,9 @@ export default function HomePage() {
                       }`}
                     >
                       <p className="text-xs font-extrabold">{g.label}</p>
-                      {g.tip && <p className="mt-1 text-[10px] text-[var(--text-muted)]">{g.tip}</p>}
+                      {g.tip && (
+                        <p className="mt-1 text-[10px] text-[var(--text-muted)]">{g.tip}</p>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -1305,7 +1310,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* UNIQUE EXERCISE EXTRAS (IDs 141 - 162) */}
           <StepReveal className="space-y-3 pt-4">
             <h3 className="text-lg font-extrabold text-[var(--text-primary)]">Workout Boosters</h3>
             <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3">
@@ -1392,7 +1396,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Exercise Modal (Outside Animated Wrappers) */}
+      {/* Exercise Modal */}
       {activeExercise && (
         <div
           onClick={() => {
@@ -1526,7 +1530,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Top-Level Modals Outside Animated Wrappers */}
       <NutritionGainModal
         open={nutritionOpen}
         onClose={() => {

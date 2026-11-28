@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search,
   X,
@@ -41,6 +42,8 @@ interface ModalProps {
 }
 
 export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+
   const [weight, setWeight] = useState(54);
   const [height, setHeight] = useState(162);
   const [age, setAge] = useState(18);
@@ -62,6 +65,10 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
 
   const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [claimed, setClaimed] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!tool) return;
@@ -122,7 +129,10 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
         const weekly = liftReps * 3;
         return {
           main: `${weekly} Sets / Week`,
-          sub: weekly >= 10 && weekly <= 20 ? 'Optimal muscle growth zone' : 'Adjust weekly sets to 10–20',
+          sub:
+            weekly >= 10 && weekly <= 20
+              ? 'Optimal muscle growth zone'
+              : 'Adjust weekly sets to 10–20',
         };
       }
       case 'warmup-ramp':
@@ -141,7 +151,12 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
         const bmi = (weight / (hM * hM)).toFixed(1);
         return {
           main: `BMI ${bmi}`,
-          sub: Number(bmi) < 18.5 ? 'Underweight' : Number(bmi) < 25 ? 'Healthy Range' : 'Above Range',
+          sub:
+            Number(bmi) < 18.5
+              ? 'Underweight'
+              : Number(bmi) < 25
+              ? 'Healthy Range'
+              : 'Above Range',
         };
       }
       case 'bmr':
@@ -172,13 +187,25 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
         return { main: `Ratio ${r}`, sub: Number(r) < 0.5 ? 'Healthy (< 0.50)' : 'Target < 0.50' };
       }
       case 'bulking':
-        return { main: `${tdee + 250} kcal / day`, sub: `+250 kcal • ${Math.round(weight * 1.8)}g protein` };
+        return {
+          main: `${tdee + 250} kcal / day`,
+          sub: `+250 kcal • ${Math.round(weight * 1.8)}g protein`,
+        };
       case 'cutting':
-        return { main: `${Math.max(1200, tdee - 350)} kcal / day`, sub: `-350 kcal • ${Math.round(weight * 2.0)}g protein` };
+        return {
+          main: `${Math.max(1200, tdee - 350)} kcal / day`,
+          sub: `-350 kcal • ${Math.round(weight * 2.0)}g protein`,
+        };
       case 'recomp':
-        return { main: `${tdee} kcal • ${Math.round(weight * 2.0)}g Protein`, sub: 'Maintenance calories + progressive lift' };
+        return {
+          main: `${tdee} kcal • ${Math.round(weight * 2.0)}g Protein`,
+          sub: 'Maintenance calories + progressive lift',
+        };
       case 'weight-predict':
-        return { main: `~${((minutes * 30) / 7700).toFixed(2)} kg / 30d`, sub: `At ${minutes} kcal daily delta` };
+        return {
+          main: `~${((minutes * 30) / 7700).toFixed(2)} kg / 30d`,
+          sub: `At ${minutes} kcal daily delta`,
+        };
       case 'frame-size':
         return {
           main: wrist < 15.5 ? 'Small Frame' : wrist <= 17.5 ? 'Medium Frame' : 'Large Frame',
@@ -189,13 +216,22 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
         return { main: `FFMI ${ffmi}`, sub: 'Natural muscularity index' };
       }
       case 'protein':
-        return { main: `${Math.round(weight * 1.6)} – ${Math.round(weight * 2.0)}g / day`, sub: 'Daily protein target' };
+        return {
+          main: `${Math.round(weight * 1.6)} – ${Math.round(weight * 2.0)}g / day`,
+          sub: 'Daily protein target',
+        };
       case 'water': {
         const liters = (weight * 0.035).toFixed(1);
-        return { main: `${liters} L / day`, sub: `${Math.round((Number(liters) * 1000) / 250)} glasses` };
+        return {
+          main: `${liters} L / day`,
+          sub: `${Math.round((Number(liters) * 1000) / 250)} glasses`,
+        };
       }
       case 'sweat-water':
-        return { main: `+${Math.round((minutes / 30) * 350)} ml`, sub: `For ${minutes} min workout` };
+        return {
+          main: `+${Math.round((minutes / 30) * 350)} ml`,
+          sub: `For ${minutes} min workout`,
+        };
       case 'macros': {
         const p = Math.round(weight * 1.8);
         const f = Math.round((tdee * 0.25) / 9);
@@ -203,7 +239,10 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
         return { main: `${p}g P • ${c}g C • ${f}g F`, sub: `${tdee} kcal total` };
       }
       case 'fiber':
-        return { main: `${Math.round((tdee / 1000) * 14)}g Fiber / day`, sub: 'Daily gut health target' };
+        return {
+          main: `${Math.round((tdee / 1000) * 14)}g Fiber / day`,
+          sub: 'Daily gut health target',
+        };
       case 'caffeine': {
         const cutoff = (bedHour - 8 + 24) % 24;
         return { main: `Cutoff ${cutoff}:00`, sub: `8h before ${bedHour}:00 sleep` };
@@ -212,26 +251,44 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
         return { main: `${220 - age} BPM`, sub: 'Max heart rate ceiling' };
       case 'zone2': {
         const max = 220 - age;
-        return { main: `${Math.round(max * 0.6)} – ${Math.round(max * 0.7)} BPM`, sub: 'Zone 2 fat-burn heart rate' };
+        return {
+          main: `${Math.round(max * 0.6)} – ${Math.round(max * 0.7)} BPM`,
+          sub: 'Zone 2 fat-burn heart rate',
+        };
       }
       case 'steps-calc':
-        return { main: `${Math.round(steps * 0.04)} kcal • ${(steps * 0.00076).toFixed(1)} km`, sub: `${steps.toLocaleString()} steps` };
+        return {
+          main: `${Math.round(steps * 0.04)} kcal • ${(steps * 0.00076).toFixed(1)} km`,
+          sub: `${steps.toLocaleString()} steps`,
+        };
       case 'vo2max': {
         const vo2 = (15.3 * ((220 - age) / Math.max(40, rhr))).toFixed(1);
         return { main: `${vo2} VO2 Max`, sub: 'Aerobic oxygen score' };
       }
       case 'run-pace':
-        return { main: `5K: ${paceMin * 5}m • 10K: ${paceMin * 10}m`, sub: `${paceMin} min/km pace` };
+        return {
+          main: `5K: ${paceMin * 5}m • 10K: ${paceMin * 10}m`,
+          sub: `${paceMin} min/km pace`,
+        };
       case 'jump-rope':
         return { main: `~${Math.round(minutes * 11)} kcal`, sub: `${minutes} min skipping` };
       case 'rhr':
-        return { main: `${rhr} BPM`, sub: rhr <= 80 ? 'Healthy resting pulse' : 'Focus on rest & water' };
+        return {
+          main: `${rhr} BPM`,
+          sub: rhr <= 80 ? 'Healthy resting pulse' : 'Focus on rest & water',
+        };
       case 'ergonomics':
-        return { main: `Desk ${Math.round(height * 0.41)} cm • Chair ${Math.round(height * 0.25)} cm`, sub: `For ${height} cm height` };
+        return {
+          main: `Desk ${Math.round(height * 0.41)} cm • Chair ${Math.round(height * 0.25)} cm`,
+          sub: `For ${height} cm height`,
+        };
       case 'sleep-cycles': {
         const b1 = (wakeHour - 7.5 + 24) % 24;
         const b2 = (wakeHour - 9 + 24) % 24;
-        return { main: `${Math.floor(b2)}:00 or ${Math.floor(b1)}:30`, sub: `For ${wakeHour}:00 AM wake-up` };
+        return {
+          main: `${Math.floor(b2)}:00 or ${Math.floor(b1)}:30`,
+          sub: `For ${wakeHour}:00 AM wake-up`,
+        };
       }
       case 'sleep-debt': {
         const debt = Math.max(0, (8 - sleepAvg) * 7).toFixed(1);
@@ -259,10 +316,10 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
     sleepAvg,
   ]);
 
-  if (!tool) return null;
+  if (!mounted || !tool) return null;
 
   const inputClass =
-    'mt-1 w-full rounded-xl border border-sky-500/25 bg-[var(--bg-input)] px-3 py-1.5 text-sm font-bold text-[var(--text-primary)] outline-none focus:border-sky-400';
+    'mt-1 w-full rounded-xl border border-sky-400/40 bg-[var(--bg-input)] px-3 py-1.5 text-sm font-bold text-[var(--text-primary)] outline-none focus:border-sky-400';
 
   const getTimerCue = () => {
     if (tool.timerMode === 'box-breath') {
@@ -284,14 +341,24 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
     return running ? 'ACTIVE' : 'READY';
   };
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        backgroundColor: 'rgba(2, 6, 23, 0.68)',
+        backdropFilter: 'blur(8px)',
+      }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="matte-box relative z-[121] max-h-[88vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 text-[var(--text-primary)] shadow-2xl"
+        className="matte-box relative max-h-[88vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 text-[var(--text-primary)] shadow-2xl"
       >
         <button
           type="button"
@@ -552,7 +619,9 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
         {tool.engine === 'timer' && (
           <div className="matte-box-soft mt-4 rounded-2xl p-5 text-center">
             <p className="text-xs font-extrabold tracking-wider text-pink-400">{getTimerCue()}</p>
-            <p className="mt-2 text-5xl font-extrabold text-[var(--text-primary)]">{secondsLeft}s</p>
+            <p className="mt-2 text-5xl font-extrabold text-[var(--text-primary)]">
+              {secondsLeft}s
+            </p>
             <div className="mt-5 flex justify-center gap-2.5">
               <button
                 type="button"
@@ -637,7 +706,8 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
