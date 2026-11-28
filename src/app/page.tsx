@@ -442,6 +442,9 @@ export default function HomePage() {
       ? 'Hold...'
       : 'Exhale...';
 
+  const fieldClass =
+    'rounded-xl border border-sky-500/25 bg-[var(--bg-input)] px-3 py-2 text-xs font-bold text-[var(--text-primary)] outline-none focus:border-sky-400';
+
   return (
     <main className="relative min-h-screen overflow-x-hidden">
       <WelcomeSplash />
@@ -450,6 +453,7 @@ export default function HomePage() {
       <nav className="nav-pane sticky top-0 z-40 bg-[var(--bg-nav)] backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <button
+            type="button"
             onClick={() => setActiveNav('home')}
             title="Home"
             className="matte-pill flex h-10 w-10 items-center justify-center rounded-2xl text-2xl transition hover:scale-110"
@@ -470,6 +474,7 @@ export default function HomePage() {
               return (
                 <button
                   key={item.id}
+                  type="button"
                   onClick={() => {
                     if (item.id === 'exercises') {
                       openExercisesWizard();
@@ -482,8 +487,8 @@ export default function HomePage() {
                   }}
                   className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                     isActive
-                      ? 'matte-pill text-white shadow-sm'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                      ? 'matte-pill text-[var(--text-primary)] shadow-sm'
+                      : 'text-[var(--text-muted)] hover:bg-sky-500/10 hover:text-[var(--text-primary)]'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5 text-sky-400" />
@@ -501,6 +506,7 @@ export default function HomePage() {
             />
 
             <button
+              type="button"
               onClick={() => setAuthOpen(true)}
               className="matte-pill flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-sky-400 transition hover:scale-105"
             >
@@ -509,6 +515,7 @@ export default function HomePage() {
             </button>
 
             <button
+              type="button"
               onClick={toggleTheme}
               title="Switch Light / Dark Theme"
               className="matte-pill flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-bold text-amber-400 transition hover:scale-105"
@@ -532,7 +539,7 @@ export default function HomePage() {
           {/* 1. AGE GROUPS AT TOP */}
           <StepReveal className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-extrabold text-white">Age Groups</h2>
+              <h2 className="text-lg font-extrabold text-[var(--text-primary)]">Age Groups</h2>
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-3 py-1 text-[11px] font-bold text-orange-400">
                   <Flame className="h-3.5 w-3.5" /> {streak} Day Streak
@@ -589,10 +596,12 @@ export default function HomePage() {
                       <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${card.badge}`}>
                         {card.ages}
                       </span>
-                      <Icon className="h-4 w-4 text-slate-400 group-hover:text-sky-400" />
+                      <Icon className="h-4 w-4 text-[var(--text-muted)] group-hover:text-sky-400" />
                     </div>
-                    <h3 className="mt-3 text-base font-extrabold text-white">{card.title}</h3>
-                    <p className="mt-1 text-xs text-slate-400">{card.desc}</p>
+                    <h3 className="mt-3 text-base font-extrabold text-[var(--text-primary)]">
+                      {card.title}
+                    </h3>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">{card.desc}</p>
                   </div>
                 );
               })}
@@ -606,7 +615,9 @@ export default function HomePage() {
                 <span className="flex items-center gap-1.5 text-xs font-extrabold text-sky-400">
                   <Droplets className="h-4 w-4" /> Water Today
                 </span>
-                <span className="text-xs font-bold text-white">{waterGlasses} / 8</span>
+                <span className="text-xs font-bold text-[var(--text-primary)]">
+                  {waterGlasses} / 8
+                </span>
               </div>
               <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-sky-500/15">
                 <div
@@ -615,17 +626,19 @@ export default function HomePage() {
                 />
               </div>
               <div className="mt-3.5 flex items-center justify-between gap-2">
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-[var(--text-muted)]">
                   {(waterGlasses * 0.25).toFixed(2)} L drank
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button
+                    type="button"
                     onClick={() => updateWater(waterGlasses - 1)}
-                    className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-1.5 text-slate-300 hover:bg-sky-500/20"
+                    className={`${fieldClass} p-1.5`}
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
                   <button
+                    type="button"
                     onClick={() => updateWater(waterGlasses + 1)}
                     className="flex items-center gap-1 rounded-lg bg-sky-500 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-400"
                   >
@@ -646,8 +659,10 @@ export default function HomePage() {
                 <span className="flex items-center gap-1.5 text-xs font-extrabold text-indigo-400">
                   <Wind className="h-4 w-4" /> Calm Breath
                 </span>
-                <p className="mt-2 text-lg font-extrabold text-white">{breathPhase}</p>
-                <p className="mt-0.5 text-[11px] text-slate-400">
+                <p className="mt-2 text-lg font-extrabold text-[var(--text-primary)]">
+                  {breathPhase}
+                </p>
+                <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
                   {breathOn ? 'Tap to stop' : '4-4-4 instant reset'}
                 </p>
               </div>
@@ -665,12 +680,13 @@ export default function HomePage() {
                 <span className="flex items-center gap-1.5 text-xs font-extrabold text-pink-400">
                   <Shuffle className="h-4 w-4" /> Quick Pick
                 </span>
-                <span className="text-[11px] text-slate-400">Random Move</span>
+                <span className="text-[11px] text-[var(--text-muted)]">Random Move</span>
               </div>
-              <p className="mt-2 text-xs text-slate-300">
+              <p className="mt-2 text-xs text-[var(--text-secondary)]">
                 Not sure what to do? Spin a surprise exercise right now.
               </p>
               <button
+                type="button"
                 onClick={spinRandomExercise}
                 disabled={loading || exercises.length === 0}
                 className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 py-2 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-50"
@@ -683,13 +699,16 @@ export default function HomePage() {
           {/* 3. MOOD CHECK-IN */}
           <StepReveal delayMs={100} className="matte-box-soft rounded-2xl p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs font-extrabold text-white">How do you feel right now?</p>
+              <p className="text-xs font-extrabold text-[var(--text-primary)]">
+                How do you feel right now?
+              </p>
               <div className="flex flex-wrap gap-1.5">
                 {(Object.keys(MOOD_PRESETS) as MoodKey[]).map((key) => {
                   const m = MOOD_PRESETS[key];
                   return (
                     <button
                       key={key}
+                      type="button"
                       onClick={() => {
                         setMood(key);
                         pushAlert('Mood Logged', `Feeling ${m.label.toLowerCase()} today.`);
@@ -697,7 +716,7 @@ export default function HomePage() {
                       className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
                         mood === key
                           ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white'
-                          : 'border border-sky-500/15 bg-sky-500/5 text-slate-300 hover:bg-sky-500/15'
+                          : 'border border-sky-500/20 bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-sky-400'
                       }`}
                     >
                       {m.emoji} {m.label}
@@ -711,6 +730,7 @@ export default function HomePage() {
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-sky-500/15 pt-3">
                 <p className="text-xs text-sky-400">{MOOD_PRESETS[mood].tip}</p>
                 <button
+                  type="button"
                   onClick={() => {
                     const target = WELLNESS_TOOLS.find((t) => t.id === MOOD_PRESETS[mood].toolId);
                     if (target) setQuickTool(target);
@@ -727,10 +747,11 @@ export default function HomePage() {
           {favoriteExercises.length > 0 && (
             <StepReveal className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="flex items-center gap-1.5 text-lg font-extrabold text-white">
+                <h3 className="flex items-center gap-1.5 text-lg font-extrabold text-[var(--text-primary)]">
                   <Heart className="h-4 w-4 fill-pink-500 text-pink-500" /> Saved Moves
                 </h3>
                 <button
+                  type="button"
                   onClick={openExercisesWizard}
                   className="text-xs font-bold text-pink-400 hover:underline"
                 >
@@ -748,7 +769,9 @@ export default function HomePage() {
                     className="matte-box-soft flex cursor-pointer items-center justify-between gap-2 rounded-2xl p-3.5 transition hover:-translate-y-0.5"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-extrabold text-white">{ex.name}</p>
+                      <p className="truncate text-xs font-extrabold text-[var(--text-primary)]">
+                        {ex.name}
+                      </p>
                       <p className="truncate text-[11px] text-sky-400">{ex.muscle_group}</p>
                     </div>
                     <PlayCircle className="h-5 w-5 shrink-0 text-pink-400" />
@@ -762,31 +785,34 @@ export default function HomePage() {
           <StepReveal className="matte-box rounded-3xl p-6">
             <div className="flex flex-wrap items-center justify-between gap-5">
               <div>
-                <h2 className="text-2xl font-extrabold text-white sm:text-3xl">
+                <h2 className="text-2xl font-extrabold text-[var(--text-primary)] sm:text-3xl">
                   Move Better.{' '}
                   <span className="bg-gradient-to-r from-sky-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">
                     Live Stronger.
                   </span>
                 </h2>
-                <p className="mt-1.5 max-w-md text-xs text-slate-300">
+                <p className="mt-1.5 max-w-md text-xs text-[var(--text-secondary)]">
                   Animated workouts, calories &amp; protein meal combos, timers, and 🥷 &amp; 🌸 coaches.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2.5">
                 <button
+                  type="button"
                   onClick={openExercisesWizard}
                   className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:brightness-110"
                 >
                   Exercises <ArrowRight className="h-3.5 w-3.5" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setNutritionOpen(true)}
                   className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:brightness-110"
                 >
                   <Utensils className="h-3.5 w-3.5" /> Gain Calories &amp; Protein
                 </button>
                 <button
+                  type="button"
                   onClick={() => setActiveNav('maintainer')}
                   className="matte-pill flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-xs font-bold text-sky-400 hover:opacity-90"
                 >
@@ -799,8 +825,9 @@ export default function HomePage() {
           {/* 6. QUICK TOOLS GRID */}
           <StepReveal className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-extrabold text-white">Quick Tools</h3>
+              <h3 className="text-lg font-extrabold text-[var(--text-primary)]">Quick Tools</h3>
               <button
+                type="button"
                 onClick={() => setActiveNav('tools')}
                 className="text-xs font-bold text-sky-400 hover:underline"
               >
@@ -812,6 +839,7 @@ export default function HomePage() {
               {featuredQuickTools.map((tool) => (
                 <button
                   key={tool.id}
+                  type="button"
                   onClick={() => setQuickTool(tool)}
                   className="matte-box-soft group flex items-center gap-3 rounded-2xl p-3.5 text-left transition hover:-translate-y-0.5"
                 >
@@ -819,10 +847,10 @@ export default function HomePage() {
                     {tool.emoji}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-extrabold text-white group-hover:text-sky-400">
+                    <p className="truncate text-xs font-extrabold text-[var(--text-primary)] group-hover:text-sky-400">
                       {tool.title}
                     </p>
-                    <p className="truncate text-[11px] text-slate-400">{tool.tagline}</p>
+                    <p className="truncate text-[11px] text-[var(--text-muted)]">{tool.tagline}</p>
                   </div>
                 </button>
               ))}
@@ -832,8 +860,9 @@ export default function HomePage() {
           {/* 7. TOOL CATEGORIES */}
           <StepReveal className="matte-box rounded-3xl p-5">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-extrabold text-white">Categories</h3>
+              <h3 className="text-lg font-extrabold text-[var(--text-primary)]">Categories</h3>
               <button
+                type="button"
                 onClick={() => setActiveNav('tools')}
                 className="rounded-xl bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-400 hover:bg-sky-500/30"
               >
@@ -845,6 +874,7 @@ export default function HomePage() {
               {TOOL_CATEGORIES.filter((c) => c.id !== 'All').map((c) => (
                 <button
                   key={c.id}
+                  type="button"
                   onClick={() => {
                     setToolCategory(c.id);
                     setActiveNav('tools');
@@ -852,7 +882,9 @@ export default function HomePage() {
                   className="matte-box-soft flex items-center gap-2.5 rounded-2xl p-3 text-left transition hover:-translate-y-0.5"
                 >
                   <span className="text-xl">{c.emoji}</span>
-                  <p className="text-xs font-extrabold text-slate-100">{SHORT_CAT_NAMES[c.id]}</p>
+                  <p className="text-xs font-extrabold text-[var(--text-primary)]">
+                    {SHORT_CAT_NAMES[c.id]}
+                  </p>
                 </button>
               ))}
             </div>
@@ -865,14 +897,17 @@ export default function HomePage() {
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400">
                   <Star className="h-3.5 w-3.5" /> Level Plans
                 </span>
-                <h3 className="mt-0.5 text-lg font-extrabold text-white">Training Guides</h3>
+                <h3 className="mt-0.5 text-lg font-extrabold text-[var(--text-primary)]">
+                  Training Guides
+                </h3>
               </div>
               <div className="flex flex-wrap gap-2">
                 {(['Beginner', 'Intermediate', 'Advanced'] as LevelKey[]).map((lvl) => (
                   <button
                     key={lvl}
+                    type="button"
                     onClick={() => setGuideLevel(lvl)}
-                    className="matte-pill flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-slate-200 hover:opacity-90"
+                    className="matte-pill flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:opacity-90"
                   >
                     <ShieldCheck className="h-3.5 w-3.5 text-sky-400" />
                     {lvl}
@@ -884,18 +919,21 @@ export default function HomePage() {
 
           {/* 9. UNIQUE HOME DAILY EXTRAS (IDs 100 - 120) */}
           <StepReveal className="space-y-3">
-            <h3 className="text-lg font-extrabold text-white">Daily Extras</h3>
+            <h3 className="text-lg font-extrabold text-[var(--text-primary)]">Daily Extras</h3>
             <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3">
               {homeExtras.map((item) => (
                 <button
                   key={item.id}
+                  type="button"
                   onClick={() => setQuickTool(item)}
                   className="matte-box-soft flex items-center gap-2.5 rounded-2xl p-3 text-left transition hover:-translate-y-0.5"
                 >
                   <span className="text-lg">{item.emoji}</span>
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-extrabold text-white">{item.title}</p>
-                    <p className="truncate text-[10px] text-slate-400">{item.tagline}</p>
+                    <p className="truncate text-xs font-extrabold text-[var(--text-primary)]">
+                      {item.title}
+                    </p>
+                    <p className="truncate text-[10px] text-[var(--text-muted)]">{item.tagline}</p>
                   </div>
                 </button>
               ))}
@@ -926,11 +964,12 @@ export default function HomePage() {
             ].map((s) => (
               <button
                 key={s.step}
+                type="button"
                 onClick={() => setExerciseStep(s.step)}
                 className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
                   exerciseStep === s.step
                     ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white'
-                    : 'matte-box-soft text-slate-400 hover:text-white'
+                    : 'matte-box-soft text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 {s.label}
@@ -940,7 +979,9 @@ export default function HomePage() {
 
           {exerciseStep === 1 && (
             <div className="animate-step-open matte-box mx-auto max-w-3xl rounded-3xl p-6">
-              <h2 className="text-center text-2xl font-extrabold text-white">Select Body Part</h2>
+              <h2 className="text-center text-2xl font-extrabold text-[var(--text-primary)]">
+                Select Body Part
+              </h2>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
                 {BODY_PART_CATEGORIES.map((bp) => {
@@ -948,6 +989,7 @@ export default function HomePage() {
                   return (
                     <button
                       key={bp.id}
+                      type="button"
                       onClick={() => {
                         setSelectedBodyPart(bp.id);
                         setSelectedMuscle('all');
@@ -956,7 +998,9 @@ export default function HomePage() {
                         }
                       }}
                       className={`flex flex-col items-center rounded-2xl p-4 text-center transition hover:-translate-y-0.5 ${
-                        isSelected ? 'matte-box text-white' : 'matte-box-soft text-slate-300'
+                        isSelected
+                          ? 'matte-box text-[var(--text-primary)]'
+                          : 'matte-box-soft text-[var(--text-secondary)]'
                       }`}
                     >
                       <span className="text-2xl">{bp.emoji}</span>
@@ -973,6 +1017,7 @@ export default function HomePage() {
                   </p>
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
                     <button
+                      type="button"
                       onClick={() => {
                         setSelectedMuscle('all');
                         setExerciseStep(2);
@@ -984,11 +1029,12 @@ export default function HomePage() {
                     {activeBodyGroup.muscles.map((m) => (
                       <button
                         key={m}
+                        type="button"
                         onClick={() => {
                           setSelectedMuscle(m);
                           setExerciseStep(2);
                         }}
-                        className="rounded-lg border border-sky-500/20 bg-sky-500/10 px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-sky-500/20"
+                        className={`${fieldClass} hover:border-sky-400`}
                       >
                         {m} →
                       </button>
@@ -999,6 +1045,7 @@ export default function HomePage() {
 
               <div className="mt-6 flex justify-end">
                 <button
+                  type="button"
                   onClick={() => setExerciseStep(2)}
                   className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 px-6 py-2.5 text-xs font-bold text-white"
                 >
@@ -1010,7 +1057,9 @@ export default function HomePage() {
 
           {exerciseStep === 2 && (
             <div className="animate-step-open matte-box mx-auto max-w-3xl rounded-3xl p-6">
-              <h2 className="text-center text-2xl font-extrabold text-white">Goal &amp; Time</h2>
+              <h2 className="text-center text-2xl font-extrabold text-[var(--text-primary)]">
+                Goal &amp; Time
+              </h2>
 
               <div className="mt-6">
                 <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-pink-400">
@@ -1020,13 +1069,16 @@ export default function HomePage() {
                   {TARGET_GOALS.map((g) => (
                     <button
                       key={g.id}
+                      type="button"
                       onClick={() => setSelectedGoal(g.id)}
                       className={`rounded-2xl p-3.5 text-left transition ${
-                        selectedGoal === g.id ? 'matte-box text-white' : 'matte-box-soft text-slate-300'
+                        selectedGoal === g.id
+                          ? 'matte-box text-[var(--text-primary)]'
+                          : 'matte-box-soft text-[var(--text-secondary)]'
                       }`}
                     >
                       <p className="text-xs font-extrabold">{g.label}</p>
-                      {g.tip && <p className="mt-1 text-[10px] text-slate-400">{g.tip}</p>}
+                      {g.tip && <p className="mt-1 text-[10px] text-[var(--text-muted)]">{g.tip}</p>}
                     </button>
                   ))}
                 </div>
@@ -1040,9 +1092,12 @@ export default function HomePage() {
                   {TIME_OF_DAY_OPTIONS.map((t) => (
                     <button
                       key={t.id}
+                      type="button"
                       onClick={() => setSelectedTime(t.id)}
                       className={`flex flex-col items-center rounded-2xl p-3 text-center transition ${
-                        selectedTime === t.id ? 'matte-box text-white' : 'matte-box-soft text-slate-300'
+                        selectedTime === t.id
+                          ? 'matte-box text-[var(--text-primary)]'
+                          : 'matte-box-soft text-[var(--text-secondary)]'
                       }`}
                     >
                       <span className="text-lg">{t.emoji}</span>
@@ -1054,12 +1109,14 @@ export default function HomePage() {
 
               <div className="mt-7 flex items-center justify-between gap-3">
                 <button
+                  type="button"
                   onClick={() => setExerciseStep(1)}
-                  className="matte-box-soft flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-300"
+                  className="matte-box-soft flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold text-[var(--text-secondary)]"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" /> Back
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setVisibleCount(24);
                     setExerciseStep(3);
@@ -1078,8 +1135,9 @@ export default function HomePage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <button
+                      type="button"
                       onClick={() => setExerciseStep(2)}
-                      className="matte-box-soft flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-300"
+                      className="matte-box-soft flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)]"
                     >
                       <ArrowLeft className="h-3 w-3" /> Back
                     </button>
@@ -1096,6 +1154,7 @@ export default function HomePage() {
                   </div>
 
                   <button
+                    type="button"
                     onClick={resetAllFilters}
                     className="flex items-center gap-1 rounded-xl bg-rose-500/20 px-3 py-1.5 text-xs font-bold text-rose-400 hover:bg-rose-500/30"
                   >
@@ -1120,7 +1179,7 @@ export default function HomePage() {
                   <select
                     value={selectedAge}
                     onChange={(e) => setSelectedAge(e.target.value)}
-                    className="rounded-xl border border-sky-500/25 bg-[var(--bg-input)] px-3 py-2 text-xs font-bold text-[var(--text-primary)] outline-none"
+                    className={fieldClass}
                   >
                     {AGE_GROUPS.map((g) => (
                       <option key={g.id} value={g.id}>
@@ -1133,11 +1192,12 @@ export default function HomePage() {
                     {['All', 'Male', 'Female'].map((gen) => (
                       <button
                         key={gen}
+                        type="button"
                         onClick={() => setSelectedGender(gen)}
                         className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
                           selectedGender === gen
                             ? 'bg-sky-500 text-white'
-                            : 'text-slate-400 hover:text-white'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {gen}
@@ -1153,8 +1213,9 @@ export default function HomePage() {
                 <p className="mt-10 text-center text-xs font-bold text-rose-400">{dbError}</p>
               ) : filtered.length === 0 ? (
                 <div className="mt-10 text-center">
-                  <p className="text-xs font-bold text-slate-400">No matches found.</p>
+                  <p className="text-xs font-bold text-[var(--text-muted)]">No matches found.</p>
                   <button
+                    type="button"
                     onClick={() => setExerciseStep(2)}
                     className="mt-3 rounded-xl bg-sky-500 px-4 py-2 text-xs font-bold text-white"
                   >
@@ -1185,6 +1246,7 @@ export default function HomePage() {
                                 />
                               )}
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   toggleFavorite(ex.id, ex.name);
@@ -1214,10 +1276,12 @@ export default function HomePage() {
                                   {ex.equipment}
                                 </span>
                               </div>
-                              <h3 className="mt-2 text-base font-extrabold text-white group-hover:text-sky-400">
+                              <h3 className="mt-2 text-base font-extrabold text-[var(--text-primary)] group-hover:text-sky-400">
                                 {ex.name}
                               </h3>
-                              <p className="mt-1 text-[11px] text-slate-400">{ex.sets_reps}</p>
+                              <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                                {ex.sets_reps}
+                              </p>
                             </div>
                           </div>
                         </StepReveal>
@@ -1228,6 +1292,7 @@ export default function HomePage() {
                   {visibleCount < filtered.length && (
                     <div className="mt-8 text-center">
                       <button
+                        type="button"
                         onClick={() => setVisibleCount((c) => c + 24)}
                         className="matte-pill rounded-xl px-6 py-2.5 text-xs font-bold text-sky-400 hover:opacity-90"
                       >
@@ -1242,18 +1307,21 @@ export default function HomePage() {
 
           {/* UNIQUE EXERCISE EXTRAS (IDs 141 - 162) */}
           <StepReveal className="space-y-3 pt-4">
-            <h3 className="text-lg font-extrabold text-white">Workout Boosters</h3>
+            <h3 className="text-lg font-extrabold text-[var(--text-primary)]">Workout Boosters</h3>
             <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3">
               {exerciseExtras.map((item) => (
                 <button
                   key={item.id}
+                  type="button"
                   onClick={() => setQuickTool(item)}
                   className="matte-box-soft flex items-center gap-2.5 rounded-2xl p-3 text-left transition hover:-translate-y-0.5"
                 >
                   <span className="text-lg">{item.emoji}</span>
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-extrabold text-white">{item.title}</p>
-                    <p className="truncate text-[10px] text-slate-400">{item.tagline}</p>
+                    <p className="truncate text-xs font-extrabold text-[var(--text-primary)]">
+                      {item.title}
+                    </p>
+                    <p className="truncate text-[10px] text-[var(--text-muted)]">{item.tagline}</p>
                   </div>
                 </button>
               ))}
@@ -1301,18 +1369,21 @@ export default function HomePage() {
           </div>
 
           <StepReveal className="space-y-3">
-            <h3 className="text-lg font-extrabold text-white">Love Notes</h3>
+            <h3 className="text-lg font-extrabold text-[var(--text-primary)]">Love Notes</h3>
             <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3">
               {aboutExtras.map((item) => (
                 <button
                   key={item.id}
+                  type="button"
                   onClick={() => setQuickTool(item)}
                   className="matte-box-soft flex items-center gap-2.5 rounded-2xl p-3 text-left transition hover:-translate-y-0.5"
                 >
                   <span className="text-lg">{item.emoji}</span>
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-extrabold text-white">{item.title}</p>
-                    <p className="truncate text-[10px] text-slate-400">{item.tagline}</p>
+                    <p className="truncate text-xs font-extrabold text-[var(--text-primary)]">
+                      {item.title}
+                    </p>
+                    <p className="truncate text-[10px] text-[var(--text-muted)]">{item.tagline}</p>
                   </div>
                 </button>
               ))}
@@ -1321,42 +1392,55 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Exercise Modal */}
+      {/* Exercise Modal (Outside Animated Wrappers) */}
       {activeExercise && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="animate-step-open matte-box relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl p-5 shadow-2xl">
+        <div
+          onClick={() => {
+            setActiveExercise(null);
+            setIsGuidedMode(false);
+          }}
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="matte-box relative z-[121] max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl p-5 shadow-2xl"
+          >
             <div className="absolute right-4 top-4 flex items-center gap-1.5">
               <button
+                type="button"
                 onClick={() => toggleFavorite(activeExercise.id, activeExercise.name)}
                 title="Save Favorite"
-                className="rounded-xl bg-white/10 p-1.5 hover:bg-white/20"
+                className="rounded-xl bg-sky-500/15 p-1.5 hover:bg-sky-500/25"
               >
                 <Heart
                   className={`h-4 w-4 ${
                     favoriteIds.includes(activeExercise.id)
                       ? 'fill-pink-500 text-pink-500'
-                      : 'text-slate-300'
+                      : 'text-[var(--text-muted)]'
                   }`}
                 />
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setActiveExercise(null);
                   setIsGuidedMode(false);
                 }}
-                className="rounded-xl bg-white/10 p-1.5 text-slate-300 hover:bg-white/20"
+                className="rounded-xl bg-sky-500/15 p-1.5 text-[var(--text-primary)] hover:bg-sky-500/25"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <h2 className="pr-16 text-lg font-extrabold text-white">{activeExercise.name}</h2>
+            <h2 className="pr-16 text-lg font-extrabold text-[var(--text-primary)]">
+              {activeExercise.name}
+            </h2>
             <p className="mt-0.5 text-xs font-bold text-sky-400">
               {activeExercise.muscle_group} • {activeExercise.equipment} • {activeExercise.sets_reps}
             </p>
 
             {isGuidedMode ? (
-              <div className="animate-step-open mt-4">
+              <div className="mt-4">
                 <GuidedExercisePlayer
                   exercise={activeExercise}
                   onExit={() => {
@@ -1374,6 +1458,7 @@ export default function HomePage() {
                 />
 
                 <button
+                  type="button"
                   onClick={() => {
                     setIsGuidedMode(true);
                     pushAlert('Workout Started', `Started ${activeExercise.name}`);
@@ -1388,7 +1473,7 @@ export default function HomePage() {
                     <h3 className="text-[11px] font-bold uppercase tracking-wider text-sky-400">
                       Overview
                     </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-300">
+                    <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
                       {activeExercise.long_description}
                     </p>
                   </div>
@@ -1399,7 +1484,7 @@ export default function HomePage() {
                     <h3 className="text-[11px] font-bold uppercase tracking-wider text-indigo-400">
                       Benefits
                     </h3>
-                    <ul className="mt-1.5 space-y-1 text-xs text-slate-300">
+                    <ul className="mt-1.5 space-y-1 text-xs text-[var(--text-secondary)]">
                       {activeExercise.benefits.map((b, idx) => (
                         <li key={idx} className="flex items-start gap-1.5">
                           <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
@@ -1415,16 +1500,16 @@ export default function HomePage() {
                     <h3 className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-pink-400">
                       <Calendar className="h-3.5 w-3.5" /> Timeline
                     </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-300">
+                    <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
                       {activeExercise.results_timeline}
                     </p>
                   </div>
                 )}
 
-                <h3 className="mt-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <h3 className="mt-4 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   Steps
                 </h3>
-                <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-xs text-slate-300">
+                <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-xs text-[var(--text-secondary)]">
                   {activeExercise.instructions.map((step, i) => (
                     <li key={i}>{step}</li>
                   ))}
@@ -1441,6 +1526,7 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* Top-Level Modals Outside Animated Wrappers */}
       <NutritionGainModal
         open={nutritionOpen}
         onClose={() => {
