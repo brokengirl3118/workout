@@ -65,9 +65,11 @@ import {
   AuthModal,
   NotificationBell,
   AlertEntry,
-  UserProfileData,
-  loadUsersDb,
-  saveUserProfile,
+  ChatMsg,
+  ActivityEntry,
+  loadCloudProgress,
+  saveCloudProgress,
+  signOutGoogle,
 } from '@/components/AccountAndAlerts';
 
 type NavTab = 'home' | 'maintainer' | 'exercises' | 'tools' | 'about';
@@ -127,21 +129,39 @@ export default function HomePage() {
   const [quickTool, setQuickTool] = useState<WellnessTool | null>(null);
   const [xp, setXp] = useState<number>(0);
 
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  // Google Auth & Permanent Cloud Sync State
+  const [authUser, setAuthUser] = useState<{
+    id: string;
+    email: string;
+    name: string;
+    avatar?: string;
+  } | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
+  const [syncingCloud, setSyncingCloud] = useState(false);
+  const [coachGender, setCoachGender] = useState<'male' | 'female' | null>('female');
+  const [chatHistory, setChatHistory] = useState<ChatMsg[]>([
+    {
+      role: 'model',
+      text: '🌸 Hi! Sign in with Google to save all our chats and your daily progress permanently.',
+    },
+  ]);
+  const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
+
   const [alerts, setAlerts] = useState<AlertEntry[]>([
     {
       id: 'init-1',
       title: 'Welcome to 🌸',
-      detail: 'All user status, XP, water, and activity alerts are saved automatically.',
+      detail: 'Sign in with Google to save every activity, XP, water log, and AI chat permanently.',
       time: 'Now',
       read: false,
     },
   ]);
 
+  // Theme & Nutrition Guide State
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [nutritionOpen, setNutritionOpen] = useState(false);
 
+  // Daily Home Features State
   const [streak, setStreak] = useState<number>(1);
   const [mood, setMood] = useState<MoodKey | null>(null);
   const [waterGlasses, setWaterGlasses] = useState<number>(0);
@@ -149,10 +169,12 @@ export default function HomePage() {
   const [breathOn, setBreathOn] = useState<boolean>(false);
   const [breathTick, setBreathTick] = useState<number>(0);
 
+  // Exercises State
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
 
+  // Filters
   const [search, setSearch] = useState('');
   const [selectedAge, setSelectedAge] = useState<string>('all');
   const [selectedGender, setSelectedGender] = useState<string>('All');
@@ -173,91 +195,159 @@ export default function HomePage() {
     });
     setAlerts((prev) => [
       { id: `${Date.now()}-${Math.random()}`, title, detail, time: nowTime, read: false },
-      ...prev.slice(0, 29),
+      ...prev.slice(0, 39),
     ]);
   };
 
+  const logActivity = (action: string, detail: string) => {
+    setActivityLog((prev) => [
+      {
+        id: `${Date.now()}-${Math.random()}`,
+        action,
+        detail,
+        timestamp: new Date().toISOString(),
+      },
+      ...prev.slice(0, 149),
+    ]);
+  };
+
+  // Subscribe to Google Auth & Load Permanent Cloud Progress
   useEffect(() => {
     document.title = '🌸';
 
-    const activeName = localStorage.getItem('flower_active_user');
-    if (activeName) {
-      const db = loadUsersDb();
-      const prof = db[activeName.toLowerCase()];
-      if (prof) {
-        setCurrentUser(prof.username);
-        setXp(prof.xp || 0);
-        setStreak(prof.streak || 1);
-        setWaterGlasses(prof.water || 0);
-        setFavoriteIds(prof.favorites || []);
-        if (prof.alerts?.length) setAlerts(prof.alerts);
-        if (prof.theme) {
-          setTheme(prof.theme);
-          document.documentElement.setAttribute('data-theme', prof.theme);
+    const hydrateGuest = () => {
+      const savedTheme = localStorage.getItem('flower_theme') as 'dark' | 'light' | null;
+      if (savedTheme) {
+        setTheme(savedTheme);
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      }
+
+      const savedXp = localStorage.getItem('fitlife_xp');
+      if (savedXp) setXp(Number(savedXp));
+
+      const savedWater = localStorage.getItem('fitlife_water');
+      if (savedWater) setWaterGlasses(Number(savedWater));
+
+      const savedFavs = localStorage.getItem('fitlife_favorites');
+      if (savedFavs) {
+        try {
+          setFavoriteIds(JSON.parse(savedFavs));
+        } catch {
+          setFavoriteIds([]);
         }
+      }
+
+      const savedChat = localStorage.getItem('flower_guest_chat');
+      if (savedChat) {
+        try {
+          setChatHistory(JSON.parse(savedChat));
+        } catch {}
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const lastVisit = localStorage.getItem('fitlife_last_visit');
+      const savedStreak = Number(localStorage.getItem('fitlife_streak') || '0');
+
+      if (!lastVisit) {
+        setStreak(1);
+        localStorage.setItem('fitlife_streak', '1');
+        localStorage.setItem('fitlife_last_visit', today);
+      } else if (lastVisit === today) {
+        setStreak(Math.max(1, savedStreak));
+      } else {
+        const prev = new Date(lastVisit);
+        const now = new Date(today);
+        const diffDays = Math.round(
+          (now.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const nextStreak = diffDays === 1 ? savedStreak + 1 : 1;
+        setStreak(nextStreak);
+        localStorage.setItem('fitlife_streak', String(nextStreak));
+        localStorage.setItem('fitlife_last_visit', today);
+      }
+    };
+
+    const hydrateUser = async (supaUser: {
+      id: string;
+      email?: string;
+      user_metadata?: Record<string, unknown>;
+    } | null) => {
+      if (!supaUser) {
+        setAuthUser(null);
+        hydrateGuest();
         return;
       }
-    }
 
-    const savedTheme = localStorage.getItem('flower_theme') as 'dark' | 'light' | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.documentElement.setAttribute('data-theme', savedTheme);
-    }
+      const cloud = await loadCloudProgress(supaUser);
+      setAuthUser({
+        id: supaUser.id,
+        email: cloud.email,
+        name: cloud.full_name,
+        avatar: cloud.avatar_url,
+      });
+      setXp(cloud.xp);
+      setStreak(cloud.streak);
+      setWaterGlasses(cloud.water);
+      setFavoriteIds(cloud.favorites);
+      setTheme(cloud.theme);
+      setCoachGender(cloud.coach_gender);
+      setAlerts(cloud.alerts);
+      setChatHistory(cloud.chat_history);
+      setActivityLog(cloud.activity_log);
+      document.documentElement.setAttribute('data-theme', cloud.theme);
+    };
 
-    const savedXp = localStorage.getItem('fitlife_xp');
-    if (savedXp) setXp(Number(savedXp));
+    supabase.auth.getUser().then(({ data }) => hydrateUser(data.user));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      hydrateUser(session?.user ?? null);
+    });
 
-    const savedWater = localStorage.getItem('fitlife_water');
-    if (savedWater) setWaterGlasses(Number(savedWater));
-
-    const savedFavs = localStorage.getItem('fitlife_favorites');
-    if (savedFavs) {
-      try {
-        setFavoriteIds(JSON.parse(savedFavs));
-      } catch {
-        setFavoriteIds([]);
-      }
-    }
-
-    const today = new Date().toISOString().slice(0, 10);
-    const lastVisit = localStorage.getItem('fitlife_last_visit');
-    const savedStreak = Number(localStorage.getItem('fitlife_streak') || '0');
-
-    if (!lastVisit) {
-      setStreak(1);
-      localStorage.setItem('fitlife_streak', '1');
-      localStorage.setItem('fitlife_last_visit', today);
-    } else if (lastVisit === today) {
-      setStreak(Math.max(1, savedStreak));
-    } else {
-      const prev = new Date(lastVisit);
-      const now = new Date(today);
-      const diffDays = Math.round(
-        (now.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      const nextStreak = diffDays === 1 ? savedStreak + 1 : 1;
-      setStreak(nextStreak);
-      localStorage.setItem('fitlife_streak', String(nextStreak));
-      localStorage.setItem('fitlife_last_visit', today);
-    }
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
+  // Auto-save every activity, progress field & AI chat permanently to Supabase
   useEffect(() => {
-    if (!currentUser) return;
-    const db = loadUsersDb();
-    const existing = db[currentUser.toLowerCase()];
-    saveUserProfile({
-      username: currentUser,
-      email: existing?.email || '',
-      xp,
-      streak,
-      water: waterGlasses,
-      favorites: favoriteIds,
-      theme,
-      alerts,
-    });
-  }, [currentUser, xp, streak, waterGlasses, favoriteIds, theme, alerts]);
+    if (!authUser) {
+      localStorage.setItem('flower_guest_chat', JSON.stringify(chatHistory.slice(-50)));
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSyncingCloud(true);
+      await saveCloudProgress({
+        user_id: authUser.id,
+        email: authUser.email,
+        full_name: authUser.name,
+        avatar_url: authUser.avatar || '',
+        xp,
+        streak,
+        last_visit: new Date().toISOString().slice(0, 10),
+        water: waterGlasses,
+        favorites: favoriteIds,
+        theme,
+        coach_gender: coachGender || 'female',
+        alerts,
+        chat_history: chatHistory,
+        activity_log: activityLog,
+      });
+      setSyncingCloud(false);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [
+    authUser,
+    xp,
+    streak,
+    waterGlasses,
+    favoriteIds,
+    theme,
+    coachGender,
+    alerts,
+    chatHistory,
+    activityLog,
+  ]);
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -265,6 +355,7 @@ export default function HomePage() {
     localStorage.setItem('flower_theme', next);
     document.documentElement.setAttribute('data-theme', next);
     pushAlert('Theme Switched', `Switched to ${next === 'dark' ? 'Dark' : 'Light'} mode.`);
+    logActivity('Theme Switched', `Changed to ${next} mode`);
   };
 
   useEffect(() => {
@@ -280,6 +371,7 @@ export default function HomePage() {
       const next = prev + pts;
       localStorage.setItem('fitlife_xp', String(next));
       pushAlert('XP Earned', `${title ? `${title}: ` : ''}+${pts} XP (Total: ${next} XP)`);
+      logActivity('XP Earned', `${title ? `${title} ` : ''}+${pts} XP`);
       return next;
     });
   };
@@ -291,6 +383,7 @@ export default function HomePage() {
     if (clamped > waterGlasses) {
       earnXp(5, 'Hydration');
       pushAlert('Water Logged', `Glass #${clamped} (${(clamped * 0.25).toFixed(2)} L)`);
+      logActivity('Water Logged', `Glass #${clamped}`);
     }
   };
 
@@ -305,6 +398,10 @@ export default function HomePage() {
           ? `${name} ${exists ? 'removed from' : 'added to'} Saved Moves.`
           : 'Updated Saved Moves.'
       );
+      logActivity(
+        exists ? 'Removed Favorite' : 'Saved Favorite',
+        name || id
+      );
       return updated;
     });
   };
@@ -315,6 +412,7 @@ export default function HomePage() {
     setActiveExercise(pick);
     setIsGuidedMode(false);
     pushAlert('Random Pick', `Selected ${pick.name}`);
+    logActivity('Random Exercise', pick.name);
   };
 
   useEffect(() => {
@@ -430,6 +528,7 @@ export default function HomePage() {
     setVisibleCount(24);
     setActiveNav('exercises');
     setExerciseStep(1);
+    logActivity('Age Group Selected', ageId);
   };
 
   const featuredQuickTools = useMemo(
@@ -517,8 +616,16 @@ export default function HomePage() {
               onClick={() => setAuthOpen(true)}
               className="matte-pill flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-sky-400 transition hover:scale-105"
             >
-              <User className="h-3.5 w-3.5" />
-              {currentUser ? currentUser : 'Login'}
+              {authUser?.avatar ? (
+                <img
+                  src={authUser.avatar}
+                  alt={authUser.name}
+                  className="h-4 w-4 rounded-full object-cover"
+                />
+              ) : (
+                <User className="h-3.5 w-3.5" />
+              )}
+              {authUser ? authUser.name : 'Google Login'}
             </button>
 
             <button
@@ -543,6 +650,7 @@ export default function HomePage() {
          ========================================================= */}
       {activeNav === 'home' && (
         <div className="animate-step-open mx-auto max-w-5xl space-y-7 px-4 py-7">
+          {/* 1. AGE GROUPS AT TOP */}
           <StepReveal className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-extrabold text-[var(--text-primary)]">Age Groups</h2>
@@ -616,6 +724,7 @@ export default function HomePage() {
             </div>
           </StepReveal>
 
+          {/* 2. DAILY ESSENTIALS */}
           <StepReveal delayMs={60} className="grid gap-3.5 md:grid-cols-3">
             <div className="matte-box-soft flex flex-col justify-between rounded-2xl p-4">
               <div className="flex items-center justify-between">
@@ -703,6 +812,7 @@ export default function HomePage() {
             </div>
           </StepReveal>
 
+          {/* 3. MOOD CHECK-IN */}
           <StepReveal delayMs={100} className="matte-box-soft rounded-2xl p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs font-extrabold text-[var(--text-primary)]">
@@ -718,6 +828,7 @@ export default function HomePage() {
                       onClick={() => {
                         setMood(key);
                         pushAlert('Mood Logged', `Feeling ${m.label.toLowerCase()} today.`);
+                        logActivity('Mood Checked', m.label);
                       }}
                       className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
                         mood === key
@@ -741,7 +852,10 @@ export default function HomePage() {
                     const target = WELLNESS_TOOLS.find(
                       (t) => t.id === MOOD_PRESETS[mood].toolId
                     );
-                    if (target) setQuickTool(target);
+                    if (target) {
+                      setQuickTool(target);
+                      logActivity('Tool Opened', target.title);
+                    }
                   }}
                   className="rounded-lg bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-400 hover:bg-sky-500/30"
                 >
@@ -751,6 +865,7 @@ export default function HomePage() {
             )}
           </StepReveal>
 
+          {/* 4. SAVED FAVORITES */}
           {favoriteExercises.length > 0 && (
             <StepReveal className="space-y-3">
               <div className="flex items-center justify-between">
@@ -788,6 +903,7 @@ export default function HomePage() {
             </StepReveal>
           )}
 
+          {/* 5. MAIN ACTION BANNER */}
           <StepReveal className="matte-box rounded-3xl p-6">
             <div className="flex flex-wrap items-center justify-between gap-5">
               <div>
@@ -813,7 +929,10 @@ export default function HomePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setNutritionOpen(true)}
+                  onClick={() => {
+                    setNutritionOpen(true);
+                    logActivity('Nutrition Opened', 'Calories & Protein Guide');
+                  }}
                   className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:brightness-110"
                 >
                   <Utensils className="h-3.5 w-3.5" /> Gain Calories &amp; Protein
@@ -829,6 +948,7 @@ export default function HomePage() {
             </div>
           </StepReveal>
 
+          {/* 6. QUICK TOOLS GRID */}
           <StepReveal className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-extrabold text-[var(--text-primary)]">Quick Tools</h3>
@@ -846,7 +966,10 @@ export default function HomePage() {
                 <button
                   key={tool.id}
                   type="button"
-                  onClick={() => setQuickTool(tool)}
+                  onClick={() => {
+                    setQuickTool(tool);
+                    logActivity('Tool Opened', tool.title);
+                  }}
                   className="matte-box-soft group flex items-center gap-3 rounded-2xl p-3.5 text-left transition hover:-translate-y-0.5"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-base">
@@ -863,6 +986,7 @@ export default function HomePage() {
             </div>
           </StepReveal>
 
+          {/* 7. TOOL CATEGORIES */}
           <StepReveal className="matte-box rounded-3xl p-5">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-extrabold text-[var(--text-primary)]">Categories</h3>
@@ -895,6 +1019,7 @@ export default function HomePage() {
             </div>
           </StepReveal>
 
+          {/* 8. LEVEL GUIDES */}
           <StepReveal className="matte-box rounded-3xl p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -910,7 +1035,10 @@ export default function HomePage() {
                   <button
                     key={lvl}
                     type="button"
-                    onClick={() => setGuideLevel(lvl)}
+                    onClick={() => {
+                      setGuideLevel(lvl);
+                      logActivity('Guide Opened', `${lvl} Guide`);
+                    }}
                     className="matte-pill flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:opacity-90"
                   >
                     <ShieldCheck className="h-3.5 w-3.5 text-sky-400" />
@@ -921,6 +1049,7 @@ export default function HomePage() {
             </div>
           </StepReveal>
 
+          {/* 9. UNIQUE HOME DAILY EXTRAS (IDs 100 - 120) */}
           <StepReveal className="space-y-3">
             <h3 className="text-lg font-extrabold text-[var(--text-primary)]">Daily Extras</h3>
             <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3">
@@ -928,7 +1057,10 @@ export default function HomePage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setQuickTool(item)}
+                  onClick={() => {
+                    setQuickTool(item);
+                    logActivity('Extra Opened', item.title);
+                  }}
                   className="matte-box-soft flex items-center gap-2.5 rounded-2xl p-3 text-left transition hover:-translate-y-0.5"
                 >
                   <span className="text-lg">{item.emoji}</span>
@@ -1238,6 +1370,7 @@ export default function HomePage() {
                             onClick={() => {
                               setActiveExercise(ex);
                               setIsGuidedMode(false);
+                              logActivity('Exercise Viewed', ex.name);
                             }}
                             className="matte-box-soft group relative cursor-pointer overflow-hidden rounded-2xl transition duration-200 hover:-translate-y-1"
                           >
@@ -1317,7 +1450,10 @@ export default function HomePage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setQuickTool(item)}
+                  onClick={() => {
+                    setQuickTool(item);
+                    logActivity('Booster Opened', item.title);
+                  }}
                   className="matte-box-soft flex items-center gap-2.5 rounded-2xl p-3 text-left transition hover:-translate-y-0.5"
                 >
                   <span className="text-lg">{item.emoji}</span>
@@ -1466,6 +1602,7 @@ export default function HomePage() {
                   onClick={() => {
                     setIsGuidedMode(true);
                     pushAlert('Workout Started', `Started ${activeExercise.name}`);
+                    logActivity('Workout Started', activeExercise.name);
                   }}
                   className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 py-3 text-xs font-extrabold text-white shadow-md hover:brightness-110"
                 >
@@ -1547,26 +1684,24 @@ export default function HomePage() {
       <AuthModal
         open={authOpen}
         onClose={() => setAuthOpen(false)}
-        currentUser={currentUser}
-        onLoginSuccess={(prof: UserProfileData) => {
-          setCurrentUser(prof.username);
-          setXp(prof.xp);
-          setStreak(prof.streak);
-          setWaterGlasses(prof.water);
-          setFavoriteIds(prof.favorites);
-          setTheme(prof.theme);
-          setAlerts(prof.alerts);
-          document.documentElement.setAttribute('data-theme', prof.theme);
-        }}
-        onLogout={() => {
-          localStorage.removeItem('flower_active_user');
-          setCurrentUser(null);
-          pushAlert('Signed Out', 'You signed out of your account.');
+        user={authUser}
+        syncing={syncingCloud}
+        onLogout={async () => {
+          await signOutGoogle();
+          setAuthUser(null);
+          pushAlert('Signed Out', 'Signed out of Google account.');
         }}
       />
 
       <LevelGuideModal selectedLevel={guideLevel} onClose={() => setGuideLevel(null)} />
-      <BloomCoach />
+
+      <BloomCoach
+        messages={chatHistory}
+        onMessagesChange={setChatHistory}
+        coachGender={coachGender}
+        onCoachGenderChange={setCoachGender}
+        onLogActivity={logActivity}
+      />
     </main>
   );
 }

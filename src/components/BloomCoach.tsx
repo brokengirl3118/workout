@@ -2,58 +2,74 @@
 
 import { useState, useEffect } from 'react';
 import { Send, X, RefreshCw } from 'lucide-react';
-
-interface ChatMsg {
-  role: 'user' | 'model';
-  text: string;
-}
+import { ChatMsg } from '@/components/AccountAndAlerts';
 
 const CREATOR_REGEX =
   /\b(who (created|made|built|designed|programmed|developed) you|who is your creator|your maker|who made this ai)\b/i;
 
-export default function BloomCoach() {
+interface BloomCoachProps {
+  messages: ChatMsg[];
+  onMessagesChange: (next: ChatMsg[]) => void;
+  coachGender: 'male' | 'female' | null;
+  onCoachGenderChange: (g: 'male' | 'female' | null) => void;
+  onLogActivity?: (action: string, detail: string) => void;
+}
+
+export default function BloomCoach({
+  messages,
+  onMessagesChange,
+  coachGender,
+  onCoachGenderChange,
+  onLogActivity,
+}: BloomCoachProps) {
   const [open, setOpen] = useState(false);
-  const [coachGender, setCoachGender] = useState<'male' | 'female' | null>('female');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<ChatMsg[]>([
-    {
-      role: 'model',
-      text: '🌸 Hi! Ask me in simple words about workouts, water, or calorie & protein gain foods.',
-    },
-  ]);
 
   useEffect(() => {
     const saved = localStorage.getItem('bloom_coach_gender');
-    if (saved === 'male' || saved === 'female') {
-      setCoachGender(saved);
+    if ((saved === 'male' || saved === 'female') && !coachGender) {
+      onCoachGenderChange(saved);
     }
-  }, []);
+  }, [coachGender, onCoachGenderChange]);
 
   const icon = coachGender === 'male' ? '🥷' : '🌸';
   const isMale = coachGender === 'male';
 
   const selectGender = (g: 'male' | 'female') => {
-    setCoachGender(g);
+    onCoachGenderChange(g);
     localStorage.setItem('bloom_coach_gender', g);
     const chosenIcon = g === 'male' ? '🥷' : '🌸';
-    setMessages([
+    const next = [
+      ...messages,
       {
-        role: 'model',
-        text: `${chosenIcon} Ready! Ask me anything about exercises, water, or calorie & protein combos.`,
+        role: 'model' as const,
+        text: `${chosenIcon} Switched to ${g === 'male' ? 'Male' : 'Female'} Coach! How can I help?`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       },
-    ]);
+    ];
+    onMessagesChange(next);
+    onLogActivity?.('Coach Switched', `Selected ${g} coach`);
   };
 
   const sendMessage = async () => {
     if (!input.trim() || !coachGender || loading) return;
     const userText = input.trim();
-    const updated = [...messages, { role: 'user' as const, text: userText }];
-    setMessages(updated);
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const updated: ChatMsg[] = [
+      ...messages,
+      { role: 'user', text: userText, time: nowTime },
+    ];
+    onMessagesChange(updated);
     setInput('');
+    onLogActivity?.('AI Coach Question', userText.slice(0, 80));
 
     if (CREATOR_REGEX.test(userText)) {
-      setMessages([...updated, { role: 'model', text: `${icon} Harsh's wife.` }]);
+      const replyList: ChatMsg[] = [
+        ...updated,
+        { role: 'model', text: `${icon} Harsh's wife.`, time: nowTime },
+      ];
+      onMessagesChange(replyList);
       return;
     }
 
@@ -76,13 +92,21 @@ export default function BloomCoach() {
           ? data.reply.trim()
           : `${icon} I'm ready to help with workouts, hydration, and calorie & protein combos.`;
 
-      setMessages([...updated, { role: 'model', text: replyText }]);
-    } catch {
-      setMessages([
+      onMessagesChange([
         ...updated,
         {
           role: 'model',
-          text: `${icon} Having a quick connection hiccup—try asking again in a moment.`,
+          text: replyText,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+    } catch {
+      onMessagesChange([
+        ...updated,
+        {
+          role: 'model',
+          text: `${icon} Quick connection hiccup—try asking again in a moment.`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
     } finally {
@@ -111,7 +135,7 @@ export default function BloomCoach() {
               {coachGender && (
                 <button
                   type="button"
-                  onClick={() => setCoachGender(null)}
+                  onClick={() => onCoachGenderChange(null)}
                   title="Switch Coach"
                   className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white"
                 >

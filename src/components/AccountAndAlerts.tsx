@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Bell, User, LogIn, UserPlus, LogOut, X, CheckCheck, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, LogOut, X, CheckCheck, Sparkles, CloudCheck } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export interface AlertEntry {
   id: string;
@@ -11,270 +12,280 @@ export interface AlertEntry {
   read: boolean;
 }
 
-export interface UserProfileData {
-  username: string;
+export interface ChatMsg {
+  role: 'user' | 'model';
+  text: string;
+  time?: string;
+}
+
+export interface ActivityEntry {
+  id: string;
+  action: string;
+  detail: string;
+  timestamp: string;
+}
+
+export interface CloudUserProgress {
+  user_id: string;
   email: string;
+  full_name: string;
+  avatar_url: string;
   xp: number;
   streak: number;
+  last_visit: string;
   water: number;
   favorites: string[];
   theme: 'dark' | 'light';
+  coach_gender: 'male' | 'female';
   alerts: AlertEntry[];
+  chat_history: ChatMsg[];
+  activity_log: ActivityEntry[];
+}
+
+export async function signInWithGoogleOnly() {
+  const redirectTo =
+    typeof window !== 'undefined' ? `${window.location.origin}/` : undefined;
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo,
+      queryParams: {
+        prompt: 'select_account',
+      },
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function signOutGoogle() {
+  await supabase.auth.signOut();
+}
+
+export async function loadCloudProgress(user: {
+  id: string;
+  email?: string;
+  user_metadata?: Record<string, unknown>;
+}): Promise<CloudUserProgress> {
+  const today = new Date().toISOString().slice(0, 10);
+  const fullName =
+    (user.user_metadata?.full_name as string) ||
+    (user.user_metadata?.name as string) ||
+    user.email?.split('@')[0] ||
+    'Member';
+  const avatarUrl = (user.user_metadata?.avatar_url as string) || '';
+
+  const { data } = await supabase
+    .from('user_progress')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (data) {
+    let nextStreak = Number(data.streak || 1);
+    const lastVisit = data.last_visit as string | null;
+
+    if (lastVisit && lastVisit !== today) {
+      const prev = new Date(lastVisit);
+      const now = new Date(today);
+      const diffDays = Math.round(
+        (now.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      nextStreak = diffDays === 1 ? nextStreak + 1 : 1;
+    }
+
+    const restored: CloudUserProgress = {
+      user_id: user.id,
+      email: user.email || data.email || '',
+      full_name: fullName,
+      avatar_url: avatarUrl,
+      xp: Number(data.xp || 0),
+      streak: nextStreak,
+      last_visit: today,
+      water: Number(data.water || 0),
+      favorites: Array.isArray(data.favorites) ? data.favorites : [],
+      theme: data.theme === 'light' ? 'light' : 'dark',
+      coach_gender: data.coach_gender === 'male' ? 'male' : 'female',
+      alerts: Array.isArray(data.alerts) ? data.alerts : [],
+      chat_history: Array.isArray(data.chat_history) ? data.chat_history : [],
+      activity_log: Array.isArray(data.activity_log) ? data.activity_log : [],
+    };
+
+    if (lastVisit !== today) {
+      await saveCloudProgress(restored);
+    }
+
+    return restored;
+  }
+
+  const initial: CloudUserProgress = {
+    user_id: user.id,
+    email: user.email || '',
+    full_name: fullName,
+    avatar_url: avatarUrl,
+    xp: 0,
+    streak: 1,
+    last_visit: today,
+    water: 0,
+    favorites: [],
+    theme: 'dark',
+    coach_gender: 'female',
+    alerts: [
+      {
+        id: `${Date.now()}-welcome`,
+        title: 'Google Account Connected',
+        detail: `Welcome ${fullName}! Every activity, XP, water log, and AI chat is saved permanently.`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: false,
+      },
+    ],
+    chat_history: [
+      {
+        role: 'model',
+        text: `🌸 Hi ${fullName}! All our chats and your daily progress are permanently saved to your Google account.`,
+      },
+    ],
+    activity_log: [
+      {
+        id: `${Date.now()}-init`,
+        action: 'Account Linked',
+        detail: 'Signed in with Google',
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  };
+
+  await saveCloudProgress(initial);
+  return initial;
+}
+
+export async function saveCloudProgress(progress: CloudUserProgress) {
+  await supabase.from('user_progress').upsert(
+    {
+      ...progress,
+      alerts: progress.alerts.slice(0, 40),
+      chat_history: progress.chat_history.slice(-100),
+      activity_log: progress.activity_log.slice(0, 150),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' }
+  );
 }
 
 interface AuthModalProps {
   open: boolean;
   onClose: () => void;
-  currentUser: string | null;
-  onLoginSuccess: (profile: UserProfileData) => void;
+  user: { email: string; name: string; avatar?: string } | null;
+  syncing: boolean;
   onLogout: () => void;
 }
 
-const USERS_STORAGE_KEY = 'flower_users_db_v1';
-
-export function loadUsersDb(): Record<string, UserProfileData & { password: string }> {
-  if (typeof window === 'undefined') return {};
-  try {
-    return JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '{}');
-  } catch {
-    return {};
-  }
-}
-
-export function saveUserProfile(profile: UserProfileData) {
-  if (typeof window === 'undefined') return;
-  const db = loadUsersDb();
-  const key = profile.username.toLowerCase();
-  if (db[key]) {
-    db[key] = { ...db[key], ...profile };
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(db));
-  }
-  localStorage.setItem('flower_active_user', profile.username);
-}
-
-export function AuthModal({
-  open,
-  onClose,
-  currentUser,
-  onLoginSuccess,
-  onLogout,
-}: AuthModalProps) {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setError(null);
-    setPassword('');
-  }, [open, mode]);
+export function AuthModal({ open, onClose, user, syncing, onLogout }: AuthModalProps) {
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   if (!open) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    const cleanName = username.trim();
-    if (!cleanName || !password.trim()) {
-      setError('Please enter both username and password.');
-      return;
-    }
-
-    const db = loadUsersDb();
-    const key = cleanName.toLowerCase();
-
-    if (mode === 'signup') {
-      if (db[key]) {
-        setError('This username already exists. Switch to Login.');
-        return;
-      }
-
-      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const newProfile: UserProfileData & { password: string } = {
-        username: cleanName,
-        email: email.trim() || `${key}@flower.local`,
-        password: password,
-        xp: 0,
-        streak: 1,
-        water: 0,
-        favorites: [],
-        theme: 'dark',
-        alerts: [
-          {
-            id: `${Date.now()}-welcome`,
-            title: 'Account Created',
-            detail: `Welcome ${cleanName}! Your progress and status are now saved to your account.`,
-            time: nowTime,
-            read: false,
-          },
-          {
-            id: `${Date.now()}-update`,
-            title: 'App Update',
-            detail: 'Exercises, 99+ tools, water log, and live alerts are active.',
-            time: nowTime,
-            read: false,
-          },
-        ],
-      };
-
-      db[key] = newProfile;
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(db));
-      localStorage.setItem('flower_active_user', cleanName);
-      const { password: _pw, ...safeProfile } = newProfile;
-      onLoginSuccess(safeProfile);
-      onClose();
-    } else {
-      const existing = db[key];
-      if (!existing) {
-        setError('Account not found. Click "Create Account" to register.');
-        return;
-      }
-      if (existing.password !== password) {
-        setError('Incorrect password.');
-        return;
-      }
-
-      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const { password: _pw, ...safeProfile } = existing;
-      const updatedAlerts: AlertEntry[] = [
-        {
-          id: `${Date.now()}-login`,
-          title: 'Signed In',
-          detail: `Welcome back, ${safeProfile.username}! All saved status restored.`,
-          time: nowTime,
-          read: false,
-        },
-        ...(safeProfile.alerts || []),
-      ].slice(0, 30);
-
-      const restored: UserProfileData = { ...safeProfile, alerts: updatedAlerts };
-      saveUserProfile(restored);
-      onLoginSuccess(restored);
-      onClose();
+  const handleGoogleLogin = async () => {
+    setErr(null);
+    setLoading(true);
+    try {
+      await signInWithGoogleOnly();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Google sign-in failed.');
+      setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="matte-box relative w-full max-w-md rounded-3xl p-6 shadow-2xl">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-md"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="matte-box relative w-full max-w-sm rounded-3xl p-6 text-center shadow-2xl"
+      >
         <button
+          type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-xl bg-sky-500/10 p-1.5 text-[var(--text-muted)] hover:bg-sky-500/20 hover:text-[var(--text-primary)]"
+          className="absolute right-4 top-4 rounded-xl bg-sky-500/15 p-1.5 text-[var(--text-primary)] hover:bg-sky-500/25"
         >
           <X className="h-4 w-4" />
         </button>
 
-        {currentUser ? (
-          <div className="space-y-4 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-400">
-              <User className="h-6 w-6" />
+        {user ? (
+          <div className="space-y-4">
+            {user.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="mx-auto h-14 w-14 rounded-full border-2 border-sky-400 object-cover"
+              />
+            ) : (
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sky-500/20 text-2xl">
+                🌸
+              </div>
+            )}
+
+            <div>
+              <h2 className="text-lg font-extrabold text-[var(--text-primary)]">{user.name}</h2>
+              <p className="text-xs text-[var(--text-muted)]">{user.email}</p>
             </div>
-            <h2 className="text-xl font-extrabold text-[var(--text-primary)]">{currentUser}</h2>
-            <p className="text-xs text-[var(--text-muted)]">
-              Your XP, streak, water count, saved moves, and alerts are automatically saved under this account.
-            </p>
-            <div className="flex justify-center gap-2.5 pt-2">
-              <button
-                onClick={() => {
-                  onLogout();
-                  onClose();
-                }}
-                className="flex items-center gap-1.5 rounded-xl bg-rose-500 px-4 py-2.5 text-xs font-bold text-white hover:bg-rose-400"
-              >
-                <LogOut className="h-3.5 w-3.5" /> Sign Out
-              </button>
-              <button
-                onClick={onClose}
-                className="matte-pill rounded-xl px-4 py-2.5 text-xs font-bold text-[var(--text-primary)]"
-              >
-                Keep Exploring
-              </button>
+
+            <div className="matte-box-soft flex items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-bold text-emerald-400">
+              <CloudCheck className="h-4 w-4" />
+              {syncing ? 'Saving to cloud...' : 'All progress & AI chats saved permanently'}
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                onLogout();
+                onClose();
+              }}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-rose-500 py-2.5 text-xs font-bold text-white hover:bg-rose-400"
+            >
+              <LogOut className="h-3.5 w-3.5" /> Sign Out
+            </button>
           </div>
         ) : (
-          <>
-            <div className="flex gap-2 rounded-2xl bg-sky-500/10 p-1">
-              <button
-                type="button"
-                onClick={() => setMode('login')}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-extrabold transition ${
-                  mode === 'login'
-                    ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white'
-                    : 'text-[var(--text-muted)]'
-                }`}
-              >
-                <LogIn className="h-3.5 w-3.5" /> Login
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('signup')}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-extrabold transition ${
-                  mode === 'signup'
-                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white'
-                    : 'text-[var(--text-muted)]'
-                }`}
-              >
-                <UserPlus className="h-3.5 w-3.5" /> Create Account
-              </button>
+          <div className="space-y-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500/15 text-3xl">
+              🌸
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-              <div>
-                <label className="text-[11px] font-bold uppercase text-[var(--text-muted)]">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your name or handle"
-                  className="mt-1 w-full rounded-xl border border-sky-500/25 bg-[var(--bg-input)] px-3.5 py-2.5 text-sm font-bold text-[var(--text-primary)] outline-none focus:border-sky-400"
-                />
-              </div>
+            <div>
+              <h2 className="text-xl font-extrabold text-[var(--text-primary)]">
+                Continue with Google
+              </h2>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                Sign in with Google to permanently save all workouts, XP, water, alerts, and AI
+                coach chats across every device.
+              </p>
+            </div>
 
-              {mode === 'signup' && (
-                <div>
-                  <label className="text-[11px] font-bold uppercase text-[var(--text-muted)]">
-                    Email (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="mt-1 w-full rounded-xl border border-sky-500/25 bg-[var(--bg-input)] px-3.5 py-2.5 text-sm font-bold text-[var(--text-primary)] outline-none focus:border-sky-400"
-                  />
-                </div>
-              )}
+            {err && (
+              <p className="rounded-xl bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-400">
+                {err}
+              </p>
+            )}
 
-              <div>
-                <label className="text-[11px] font-bold uppercase text-[var(--text-muted)]">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="mt-1 w-full rounded-xl border border-sky-500/25 bg-[var(--bg-input)] px-3.5 py-2.5 text-sm font-bold text-[var(--text-primary)] outline-none focus:border-sky-400"
-                />
-              </div>
-
-              {error && (
-                <p className="rounded-xl bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-400">
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                className="mt-2 w-full rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 py-3 text-xs font-extrabold text-white shadow-md transition hover:brightness-110"
-              >
-                {mode === 'login' ? 'Login & Restore Status' : 'Create Account & Save Status'}
-              </button>
-            </form>
-          </>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={handleGoogleLogin}
+              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-500 py-3 text-xs font-extrabold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-black text-slate-900">
+                G
+              </span>
+              {loading ? 'Opening Google...' : 'Sign in with Google'}
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -298,6 +309,7 @@ export function NotificationBell({
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
         title="Notifications"
         className="matte-pill relative flex items-center justify-center rounded-xl p-2 text-sky-400 transition hover:scale-105"
@@ -319,6 +331,7 @@ export function NotificationBell({
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
                 <button
+                  type="button"
                   onClick={onMarkAllRead}
                   className="flex items-center gap-1 text-[10px] font-bold text-sky-400 hover:underline"
                 >
@@ -326,12 +339,14 @@ export function NotificationBell({
                 </button>
               )}
               <button
+                type="button"
                 onClick={onClearAll}
                 className="text-[10px] font-bold text-rose-400 hover:underline"
               >
                 Clear
               </button>
               <button
+                type="button"
                 onClick={() => setOpen(false)}
                 className="rounded-lg p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               >
