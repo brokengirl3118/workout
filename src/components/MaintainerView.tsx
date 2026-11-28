@@ -56,7 +56,13 @@ export default function MaintainerView() {
     const savedWater = localStorage.getItem('fitlife_water');
     const savedChecks = localStorage.getItem('fitlife_checks');
     if (savedWater) setWaterGlasses(Number(savedWater));
-    if (savedChecks) setChecks(JSON.parse(savedChecks));
+    if (savedChecks) {
+      try {
+        setChecks(JSON.parse(savedChecks));
+      } catch {
+        setChecks({});
+      }
+    }
   }, []);
 
   const updateWater = (val: number) => {
@@ -73,13 +79,21 @@ export default function MaintainerView() {
 
   const triggerNotification = (title: string, body: string) => {
     setAlertBanner(`${title}: ${body}`);
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+    if (
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      Notification.permission === 'granted'
+    ) {
       new Notification(title, { body });
     }
   };
 
   const enableReminders = async (type: 'water' | 'posture' | 'stretch') => {
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+    if (
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      Notification.permission === 'default'
+    ) {
       await Notification.requestPermission();
     }
     if (type === 'water') setWaterReminder((v) => !v);
@@ -90,19 +104,34 @@ export default function MaintainerView() {
   useEffect(() => {
     const timers: ReturnType<typeof setInterval>[] = [];
     if (waterReminder) {
-      timers.push(setInterval(() => triggerNotification('💧 Water', 'Drink 250ml water now!'), 60 * 60 * 1000));
+      timers.push(
+        setInterval(
+          () => triggerNotification('💧 Water', 'Drink 250ml water now!'),
+          60 * 60 * 1000
+        )
+      );
     }
     if (postureReminder) {
-      timers.push(setInterval(() => triggerNotification('🪑 Posture', 'Sit tall & rest eyes 20s.'), 30 * 60 * 1000));
+      timers.push(
+        setInterval(
+          () => triggerNotification('🪑 Posture', 'Sit tall & rest eyes 20s.'),
+          30 * 60 * 1000
+        )
+      );
     }
     if (stretchReminder) {
-      timers.push(setInterval(() => triggerNotification('🧘 Stretch', '2-minute neck & back stretch.'), 90 * 60 * 1000));
+      timers.push(
+        setInterval(
+          () => triggerNotification('🧘 Stretch', '2-minute neck & back stretch.'),
+          90 * 60 * 1000
+        )
+      );
     }
     return () => timers.forEach(clearInterval);
   }, [waterReminder, postureReminder, stretchReminder]);
 
   const metrics = useMemo(() => {
-    const hM = heightCm / 100;
+    const hM = Math.max(0.5, heightCm / 100);
     const bmi = Number((weightKg / (hM * hM)).toFixed(1));
     let bmiLabel = 'Healthy';
     if (bmi < 18.5) bmiLabel = 'Underweight';
@@ -120,11 +149,26 @@ export default function MaintainerView() {
     const carbsG = Math.max(50, Math.round((calories - proteinG * 4 - fatsG * 9) / 4));
     const waterLiters = Number((weightKg * 0.035).toFixed(1));
     const targetGlasses = Math.round((waterLiters * 1000) / 250);
-    const sleepHrs = age < 13 ? '9–11 hrs' : age < 18 ? '8–10 hrs' : age >= 65 ? '7–8 hrs' : '7–9 hrs';
+    const sleepHrs =
+      age < 13 ? '9–11 hrs' : age < 18 ? '8–10 hrs' : age >= 65 ? '7–8 hrs' : '7–9 hrs';
     const steps = age < 18 ? '10k–12k' : age >= 65 ? '5k–7k' : '8k–10k';
 
-    return { bmi, bmiLabel, calories, proteinG, carbsG, fatsG, waterLiters, targetGlasses, sleepHrs, steps };
+    return {
+      bmi,
+      bmiLabel,
+      calories,
+      proteinG,
+      carbsG,
+      fatsG,
+      waterLiters,
+      targetGlasses,
+      sleepHrs,
+      steps,
+    };
   }, [age, gender, heightCm, weightKg, activity]);
+
+  const fieldClass =
+    'mt-1.5 w-full rounded-2xl border border-sky-500/25 bg-[var(--bg-input)] px-3.5 py-2 text-sm font-bold text-[var(--text-primary)] outline-none focus:border-sky-400';
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-8">
@@ -132,7 +176,7 @@ export default function MaintainerView() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <HeartPulse className="h-6 w-6 text-pink-400" />
-            <h2 className="text-2xl font-extrabold text-white">Maintainer</h2>
+            <h2 className="text-2xl font-extrabold text-[var(--text-primary)]">Maintainer</h2>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -149,7 +193,7 @@ export default function MaintainerView() {
                   className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                     subTab === t.id
                       ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-md shadow-sky-500/20'
-                      : 'matte-box-soft text-slate-300 hover:text-white'
+                      : 'matte-box-soft text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" /> {t.label}
@@ -160,60 +204,62 @@ export default function MaintainerView() {
         </div>
 
         {alertBanner && (
-          <div className="matte-box-soft mt-4 flex items-center justify-between rounded-2xl px-4 py-2.5 text-xs font-bold text-sky-300">
+          <div className="matte-box-soft mt-4 flex items-center justify-between rounded-2xl px-4 py-2.5 text-xs font-bold text-sky-400">
             <span>{alertBanner}</span>
-            <button onClick={() => setAlertBanner(null)} className="text-pink-400 underline">Dismiss</button>
+            <button onClick={() => setAlertBanner(null)} className="text-pink-400 underline">
+              Dismiss
+            </button>
           </div>
         )}
 
         {/* TAB 1: CHECKUP */}
         {subTab === 'checkup' && (
-          <div className="mt-6 space-y-5">
+          <div className="animate-step-open mt-6 space-y-5">
             <div className="matte-box-soft grid gap-3 rounded-2xl p-4 sm:grid-cols-5">
-              <label className="text-[11px] font-bold text-slate-400">
+              <label className="text-[11px] font-bold text-[var(--text-muted)]">
                 Age
                 <input
                   type="number"
                   value={age}
                   onChange={(e) => setAge(Number(e.target.value))}
-                  className="mt-1 w-full rounded-xl border border-white/10 bg-[#0b0b10] px-3 py-2 text-sm font-bold text-white outline-none focus:border-sky-400"
+                  className={fieldClass}
                 />
               </label>
-              <label className="text-[11px] font-bold text-slate-400">
+              <label className="text-[11px] font-bold text-[var(--text-muted)]">
                 Gender
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value as 'male' | 'female')}
-                  className="mt-1 w-full rounded-xl border border-white/10 bg-[#0b0b10] px-3 py-2 text-sm font-bold text-white outline-none focus:border-sky-400"
+                  className={fieldClass}
                 >
                   <option value="female">Female</option>
                   <option value="male">Male</option>
                 </select>
               </label>
-              <label className="text-[11px] font-bold text-slate-400">
+              <label className="text-[11px] font-bold text-[var(--text-muted)]">
                 Height (cm)
                 <input
                   type="number"
                   value={heightCm}
                   onChange={(e) => setHeightCm(Number(e.target.value))}
-                  className="mt-1 w-full rounded-xl border border-white/10 bg-[#0b0b10] px-3 py-2 text-sm font-bold text-white outline-none focus:border-sky-400"
+                  className={fieldClass}
                 />
               </label>
-              <label className="text-[11px] font-bold text-slate-400">
+              <label className="text-[11px] font-bold text-[var(--text-muted)]">
                 Weight (kg)
                 <input
                   type="number"
                   value={weightKg}
                   onChange={(e) => setWeightKg(Number(e.target.value))}
-                  className="mt-1 w-full rounded-xl border border-white/10 bg-[#0b0b10] px-3 py-2 text-sm font-bold text-white outline-none focus:border-sky-400"
+                  className={fieldClass}
                 />
               </label>
-              <label className="text-[11px] font-bold text-slate-400">
+              <label className="text-[11px] font-bold text-[var(--text-muted)]">
                 Activity
                 <select
                   value={activity}
                   onChange={(e) => setActivity(Number(e.target.value))}
-                  className="mt-1 w-full rounded-xl border border-white/10 bg-[#0b0b10] px-3 py-2 text-sm font-bold text-white outline-none focus:border-sky-400"
+                  className={fieldClass}
                 >
                   <option value={1.2}>Sedentary</option>
                   <option value={1.375}>Light</option>
@@ -225,53 +271,59 @@ export default function MaintainerView() {
 
             <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
               <div className="matte-box-soft rounded-2xl p-4">
-                <p className="text-[11px] font-bold uppercase text-slate-400">BMI</p>
+                <p className="text-[11px] font-bold uppercase text-[var(--text-muted)]">BMI</p>
                 <p className="mt-1 text-2xl font-extrabold text-sky-400">{metrics.bmi}</p>
-                <span className="mt-1.5 inline-block rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-bold text-sky-300">
+                <span className="mt-1.5 inline-block rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-bold text-sky-400">
                   {metrics.bmiLabel}
                 </span>
               </div>
 
               <div className="matte-box-soft rounded-2xl p-4">
-                <p className="flex items-center gap-1 text-[11px] font-bold uppercase text-slate-400">
+                <p className="flex items-center gap-1 text-[11px] font-bold uppercase text-[var(--text-muted)]">
                   <Flame className="h-3.5 w-3.5 text-amber-400" /> Calories
                 </p>
-                <p className="mt-1 text-2xl font-extrabold text-white">{metrics.calories} kcal</p>
-                <p className="mt-1 text-[11px] text-slate-400">Daily target</p>
+                <p className="mt-1 text-2xl font-extrabold text-[var(--text-primary)]">
+                  {metrics.calories} kcal
+                </p>
+                <p className="mt-1 text-[11px] text-[var(--text-muted)]">Daily target</p>
               </div>
 
               <div className="matte-box-soft rounded-2xl p-4">
-                <p className="flex items-center gap-1 text-[11px] font-bold uppercase text-slate-400">
+                <p className="flex items-center gap-1 text-[11px] font-bold uppercase text-[var(--text-muted)]">
                   <Droplets className="h-3.5 w-3.5 text-cyan-400" /> Water
                 </p>
-                <p className="mt-1 text-2xl font-extrabold text-cyan-300">{metrics.waterLiters} L</p>
-                <p className="mt-1 text-[11px] text-slate-400">{metrics.targetGlasses} glasses</p>
+                <p className="mt-1 text-2xl font-extrabold text-cyan-400">
+                  {metrics.waterLiters} L
+                </p>
+                <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                  {metrics.targetGlasses} glasses
+                </p>
               </div>
 
               <div className="matte-box-soft rounded-2xl p-4">
-                <p className="text-[11px] font-bold uppercase text-slate-400">Macros</p>
-                <p className="mt-1 text-base font-extrabold text-white">
+                <p className="text-[11px] font-bold uppercase text-[var(--text-muted)]">Macros</p>
+                <p className="mt-1 text-base font-extrabold text-[var(--text-primary)]">
                   Protein: <span className="text-pink-400">{metrics.proteinG}g</span>
                 </p>
-                <p className="mt-1 text-[11px] text-slate-300">
+                <p className="mt-1 text-[11px] text-[var(--text-secondary)]">
                   Carbs: {metrics.carbsG}g • Fats: {metrics.fatsG}g
                 </p>
               </div>
 
               <div className="matte-box-soft rounded-2xl p-4">
-                <p className="flex items-center gap-1 text-[11px] font-bold uppercase text-slate-400">
+                <p className="flex items-center gap-1 text-[11px] font-bold uppercase text-[var(--text-muted)]">
                   <Moon className="h-3.5 w-3.5 text-violet-400" /> Sleep
                 </p>
-                <p className="mt-1 text-xl font-extrabold text-violet-300">{metrics.sleepHrs}</p>
-                <p className="mt-1 text-[11px] text-slate-400">Nightly recovery</p>
+                <p className="mt-1 text-xl font-extrabold text-violet-400">{metrics.sleepHrs}</p>
+                <p className="mt-1 text-[11px] text-[var(--text-muted)]">Nightly recovery</p>
               </div>
 
               <div className="matte-box-soft rounded-2xl p-4">
-                <p className="flex items-center gap-1 text-[11px] font-bold uppercase text-slate-400">
+                <p className="flex items-center gap-1 text-[11px] font-bold uppercase text-[var(--text-muted)]">
                   <Footprints className="h-3.5 w-3.5 text-emerald-400" /> Steps
                 </p>
-                <p className="mt-1 text-xl font-extrabold text-emerald-300">{metrics.steps}</p>
-                <p className="mt-1 text-[11px] text-slate-400">Daily movement</p>
+                <p className="mt-1 text-xl font-extrabold text-emerald-400">{metrics.steps}</p>
+                <p className="mt-1 text-[11px] text-[var(--text-muted)]">Daily movement</p>
               </div>
             </div>
           </div>
@@ -279,28 +331,28 @@ export default function MaintainerView() {
 
         {/* TAB 2: HOURLY */}
         {subTab === 'hourly' && (
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="animate-step-open mt-6 grid gap-3 sm:grid-cols-2">
             {HOURLY_NEEDS.map((item) => {
               const isNow = currentHour !== null && item.hour === currentHour;
               return (
                 <div
                   key={item.hour}
-                  className={`rounded-2xl p-3.5 ${
-                    isNow ? 'matte-box' : 'matte-box-soft'
-                  }`}
+                  className={`rounded-2xl p-3.5 ${isNow ? 'matte-box' : 'matte-box-soft'}`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-sky-500/20 px-2.5 py-0.5 text-[11px] font-bold text-sky-300">
+                    <span className="rounded-full bg-sky-500/20 px-2.5 py-0.5 text-[11px] font-bold text-sky-400">
                       {item.time}
                     </span>
-                    <span className="text-xs font-extrabold text-white">{item.title}</span>
+                    <span className="text-xs font-extrabold text-[var(--text-primary)]">
+                      {item.title}
+                    </span>
                     {isNow && (
                       <span className="ml-auto rounded-full bg-pink-500 px-2 py-0.5 text-[10px] font-extrabold text-white">
                         NOW
                       </span>
                     )}
                   </div>
-                  <p className="mt-1.5 text-xs text-slate-300">{item.need}</p>
+                  <p className="mt-1.5 text-xs text-[var(--text-secondary)]">{item.need}</p>
                 </div>
               );
             })}
@@ -309,13 +361,13 @@ export default function MaintainerView() {
 
         {/* TAB 3: REMINDERS */}
         {subTab === 'reminders' && (
-          <div className="mt-6 space-y-5">
+          <div className="animate-step-open mt-6 space-y-5">
             <div className="matte-box-soft flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4">
               <div className="flex items-center gap-3">
                 <Droplets className="h-6 w-6 text-cyan-400" />
                 <div>
-                  <p className="text-sm font-extrabold text-white">Water Log</p>
-                  <p className="text-xs text-cyan-300">
+                  <p className="text-sm font-extrabold text-[var(--text-primary)]">Water Log</p>
+                  <p className="text-xs text-cyan-400">
                     {waterGlasses} / {metrics.targetGlasses} glasses ({(waterGlasses * 0.25).toFixed(2)} L)
                   </p>
                 </div>
@@ -323,7 +375,7 @@ export default function MaintainerView() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => updateWater(waterGlasses - 1)}
-                  className="rounded-xl border border-white/15 bg-white/5 px-3.5 py-1.5 text-sm font-bold text-white hover:bg-white/10"
+                  className="rounded-xl border border-sky-500/25 bg-[var(--bg-input)] px-3.5 py-1.5 text-sm font-bold text-[var(--text-primary)] hover:border-sky-400"
                 >
                   -
                 </button>
@@ -338,10 +390,12 @@ export default function MaintainerView() {
 
             <div>
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Alerts</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                  Alerts
+                </h3>
                 <button
                   onClick={() => triggerNotification('FitLife Alert', 'Hydration & posture check!')}
-                  className="rounded-full bg-sky-500/20 px-3 py-1 text-xs font-bold text-sky-300 hover:bg-sky-500/30"
+                  className="rounded-full bg-sky-500/20 px-3 py-1 text-xs font-bold text-sky-400 hover:bg-sky-500/30"
                 >
                   Test Alert
                 </button>
@@ -356,11 +410,15 @@ export default function MaintainerView() {
                     key={r.key}
                     onClick={() => enableReminders(r.key)}
                     className={`rounded-2xl p-3.5 text-left transition ${
-                      r.active ? 'matte-box text-white' : 'matte-box-soft text-slate-300'
+                      r.active ? 'matte-box' : 'matte-box-soft'
                     }`}
                   >
-                    <p className="text-xs font-bold">{r.label}</p>
-                    <p className={`mt-1 text-[11px] ${r.active ? 'text-emerald-400' : 'text-slate-400'}`}>
+                    <p className="text-xs font-bold text-[var(--text-primary)]">{r.label}</p>
+                    <p
+                      className={`mt-1 text-[11px] font-bold ${
+                        r.active ? 'text-emerald-400' : 'text-[var(--text-muted)]'
+                      }`}
+                    >
                       {r.active ? 'ON' : 'OFF'}
                     </p>
                   </button>
@@ -381,10 +439,16 @@ export default function MaintainerView() {
                   key={item}
                   onClick={() => toggleCheck(item)}
                   className={`flex items-center gap-2.5 rounded-2xl p-3 text-left text-xs font-bold transition ${
-                    checks[item] ? 'matte-box text-sky-300' : 'matte-box-soft text-slate-300'
+                    checks[item]
+                      ? 'matte-box text-sky-400'
+                      : 'matte-box-soft text-[var(--text-secondary)]'
                   }`}
                 >
-                  <CheckCircle2 className={`h-4 w-4 ${checks[item] ? 'text-emerald-400' : 'text-slate-600'}`} />
+                  <CheckCircle2
+                    className={`h-4 w-4 ${
+                      checks[item] ? 'text-emerald-400' : 'text-[var(--text-muted)]'
+                    }`}
+                  />
                   {item}
                 </button>
               ))}

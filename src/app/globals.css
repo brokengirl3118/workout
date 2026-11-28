@@ -6,7 +6,7 @@
   --bg-nav: rgba(8, 8, 12, 0.92);
   --bg-card: linear-gradient(155deg, #14141c 0%, #0a0a0f 100%);
   --bg-card-soft: linear-gradient(160deg, #12131a 0%, #09090d 100%);
-  --bg-input: #09090d;
+  --bg-input: #0e0e16;
   --border-card: rgba(56, 189, 248, 0.28);
   --border-soft: rgba(255, 255, 255, 0.1);
   --text-primary: #f8fafc;
@@ -16,12 +16,12 @@
 
 [data-theme="light"] {
   --bg-page: #f0f6ff;
-  --bg-nav: rgba(255, 255, 255, 0.9);
+  --bg-nav: rgba(255, 255, 255, 0.92);
   --bg-card: linear-gradient(155deg, #ffffff 0%, #f5f9ff 100%);
   --bg-card-soft: linear-gradient(160deg, #ffffff 0%, #eef5ff 100%);
   --bg-input: #ffffff;
   --border-card: rgba(56, 189, 248, 0.45);
-  --border-soft: rgba(14, 165, 233, 0.2);
+  --border-soft: rgba(14, 165, 233, 0.22);
   --text-primary: #0f172a;
   --text-secondary: #334155;
   --text-muted: #64748b;
@@ -56,6 +56,27 @@ body {
   border: 1px solid rgba(244, 114, 182, 0.45);
 }
 
+/* Navigation Pane Borders */
+.nav-pane {
+  border-bottom: 1.5px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 6px 24px -8px rgba(244, 114, 182, 0.22);
+}
+
+.nav-pane-group {
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 1rem;
+  padding: 0.25rem;
+}
+
+/* Ensure all form fields are white with dark ink in Light Mode */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(14, 165, 233, 0.38) !important;
+}
+
 /* Light-mode text contrast helper */
 [data-theme="light"] .text-white {
   color: #0f172a !important;
@@ -74,6 +95,22 @@ body {
 [data-theme="light"] .bg-sky-500.text-white,
 [data-theme="light"] .bg-pink-500.text-white {
   color: #ffffff !important;
+}
+
+/* Smooth Step Opening Animation */
+@keyframes step-open {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-step-open {
+  animation: step-open 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes text-shimmer {
@@ -106,31 +143,4 @@ body {
 
 .animate-float-up {
   animation: float-up 3.6s ease-in-out infinite;
-}
-/* Navigation Pane Border */
-.nav-pane {
-  border-bottom: 1.5px solid rgba(56, 189, 248, 0.35);
-  box-shadow: 0 6px 24px -8px rgba(244, 114, 182, 0.22);
-}
-
-.nav-pane-group {
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  border-radius: 1rem;
-  padding: 0.25rem;
-}
-
-/* Smooth Step Opening Animation */
-@keyframes step-open {
-  0% {
-    opacity: 0;
-    transform: translateY(10px) scale(0.985);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.animate-step-open {
-  animation: step-open 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
