@@ -8,58 +8,6 @@ interface ChatMsg {
   text: string;
 }
 
-function isQuotaOrApiError(text: unknown): boolean {
-  if (typeof text !== 'string' || !text.trim()) return true;
-  const lower = text.toLowerCase();
-  return (
-    lower.includes('429') ||
-    lower.includes('quota') ||
-    lower.includes('exceeded') ||
-    lower.includes('rate-limit') ||
-    lower.includes('generativelanguage')
-  );
-}
-
-function buildSmartCoachReply(prompt: string, gender: 'male' | 'female'): string {
-  const icon = gender === 'male' ? '🥷' : '🌸';
-  const raw = prompt.trim();
-  const q = raw.toLowerCase();
-
-  if (/^(hi|hello|hey|hola|namaste|yo)\b/.test(q)) {
-    return `${icon} Hello! I'm always ready with unlimited tips.\nAsk me for:\n• Calorie & protein gain combos\n• Full-body, chest, back, leg, or arm workouts\n• Fat loss, stretching, sleep, or age-safe moves (0–90)`;
-  }
-
-  if (q.includes('protein') || q.includes('calorie') || q.includes('gain') || q.includes('diet') || q.includes('eat') || q.includes('food')) {
-    return `${icon} Unlimited Calorie & Protein Gain Guide:\n• Gain Shake (~680 kcal, 26g protein): 2 bananas + 1 glass milk + 2 tbsp peanut butter + 50g oats.\n• Veg Power Bowl (~650 kcal, 34g protein): 150g paneer or 60g soya chunks + rice/roti + curd.\n• Dry Fruits (~430 kcal, 11g protein): Almonds, peanuts, cashews, dates & walnuts.\n• Rule: Add ~250–350 kcal above maintenance and eat ~1.6–2.0g protein per kg body weight daily.`;
-  }
-
-  if (q.includes('leg') || q.includes('squat') || q.includes('glute') || q.includes('calf') || q.includes('thigh')) {
-    return `${icon} Leg & Glute Routine:\n1. Squats (bodyweight, goblet, or barbell): 4 sets × 8–12 reps\n2. Reverse Lunges or Step-Ups: 3 sets × 10 reps/leg\n3. Glute Bridge or Hip Thrust: 3 sets × 12–15 reps\n4. Standing Calf Raises: 4 sets × 15–20 reps\nRest 60–90s between sets and control the lowering phase.`;
-  }
-
-  if (q.includes('chest') || q.includes('push') || q.includes('bench')) {
-    return `${icon} Chest & Push Routine:\n1. Push-Ups or Bench Press: 4 sets × 8–12 reps\n2. Incline Push-Ups or Incline Press: 3 sets × 10–12 reps\n3. Chest Fly or Squeeze Press: 3 sets × 12–15 reps\n4. Tricep Dips or Extensions: 3 sets × 10–15 reps\nKeep shoulder blades slightly pulled back and breathe smoothly.`;
-  }
-
-  if (q.includes('back') || q.includes('pull') || q.includes('row') || q.includes('lat')) {
-    return `${icon} Back & Pull Routine:\n1. Rows (dumbbell, barbell, cable, or inverted): 4 sets × 8–12 reps\n2. Lat Pulldowns or Pull-Ups/Assisted Pulls: 3–4 sets × 8–12 reps\n3. Rear Delt Fly or Face Pulls: 3 sets × 15 reps\n4. Bicep Curls: 3 sets × 10–15 reps`;
-  }
-
-  if (q.includes('arm') || q.includes('bicep') || q.includes('tricep') || q.includes('shoulder')) {
-    return `${icon} Shoulders & Arms Routine:\n1. Overhead Press: 3–4 sets × 8–12 reps\n2. Lateral Raises: 4 sets × 12–15 reps\n3. Bicep Curls (hammer or standard): 3 sets × 10–12 reps\n4. Overhead Tricep Extension or Pushdown: 3 sets × 10–12 reps`;
-  }
-
-  if (q.includes('abs') || q.includes('belly') || q.includes('core') || q.includes('fat') || q.includes('weight loss') || q.includes('cut')) {
-    return `${icon} Core & Lean Fat-Loss Plan:\n• Plank: 3 sets × 30–60s\n• Dead Bug or Mountain Climbers: 3 sets × 12–20 reps\n• Daily brisk walk / Zone 2 cardio: 20–35 mins\n• Nutrition: Slight calorie deficit (~300–400 kcal) + high protein + water.`;
-  }
-
-  if (q.includes('sleep') || q.includes('rest') || q.includes('stretch') || q.includes('recover') || q.includes('stress')) {
-    return `${icon} Recovery & Calm Reset:\n• Box Breathing: 4s inhale, 4s hold, 4s exhale, 4s hold (4 rounds).\n• Mobility: 5–10 mins gentle neck, shoulder, hip & lower-back stretches.\n• Sleep: Aim for 7–9 hours in a cool, dark room without late caffeine.`;
-  }
-
-  return `${icon} Plan for "${raw}":\n1. Warm up 5 minutes (light movement + joint circles).\n2. Perform 3–4 sets of 8–12 controlled reps with 60–90s rest.\n3. Stay hydrated, hit your protein goal, and rest well.\nAsk me for a specific meal combo, muscle split, or age group (0–90)!`;
-}
-
 export default function BloomCoach() {
   const [open, setOpen] = useState(false);
   const [coachGender, setCoachGender] = useState<'male' | 'female' | null>('female');
@@ -68,7 +16,7 @@ export default function BloomCoach() {
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: 'model',
-      text: '🌸 Hi! Unlimited fitness & nutrition coach ready. Ask anything!',
+      text: '🌸 Connected to Gemini! Ask me about workouts, diet, or protein.',
     },
   ]);
 
@@ -89,7 +37,7 @@ export default function BloomCoach() {
     setMessages([
       {
         role: 'model',
-        text: `${chosenIcon} Ready! Ask me any workout, muscle, or calorie & protein combo.`,
+        text: `${chosenIcon} Ready! What workout or nutrition question can I help with?`,
       },
     ]);
   };
@@ -106,28 +54,38 @@ export default function BloomCoach() {
       const res = await fetch('/api/coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userText, coachGender, history: updated }),
+        body: JSON.stringify({
+          message: userText,
+          coachGender,
+          history: updated,
+        }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.reply && !isQuotaOrApiError(data.reply)) {
-          setMessages([...updated, { role: 'model', text: data.reply }]);
-          setLoading(false);
-          return;
-        }
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && typeof data?.reply === 'string' && data.reply.trim()) {
+        setMessages([...updated, { role: 'model', text: data.reply.trim() }]);
+      } else {
+        const errText =
+          typeof data?.error === 'string' && data.error.trim()
+            ? data.error.trim()
+            : `Could not reach Gemini (${res.status}). Check GEMINI_API_KEY.`;
+        setMessages([...updated, { role: 'model', text: `⚠️ ${errText}` }]);
       }
     } catch {
-      // Ignore network/API error and use unlimited local coach engine
+      setMessages([
+        ...updated,
+        { role: 'model', text: '⚠️ Network error while calling /api/coach.' },
+      ]);
+    } finally {
+      setLoading(false);
     }
-
-    const smartReply = buildSmartCoachReply(userText, coachGender);
-    setMessages([...updated, { role: 'model', text: smartReply }]);
-    setLoading(false);
   };
 
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
         className="matte-pill fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-extrabold text-[var(--text-primary)] shadow-xl transition hover:scale-105"
       >

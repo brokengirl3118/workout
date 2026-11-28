@@ -13,51 +13,44 @@ export async function POST(req: Request) {
     const history: ChatTurn[] = Array.isArray(body?.history) ? body.history : [];
 
     if (!message) {
-      return NextResponse.json({ reply: '' }, { status: 200 });
+      return NextResponse.json({ reply: '', error: 'Empty message' }, { status: 400 });
     }
 
     const apiKey = (process.env.GEMINI_API_KEY || '').trim();
     if (!apiKey) {
-      return NextResponse.json({ reply: '' }, { status: 200 });
+      return NextResponse.json(
+        { reply: '', error: 'GEMINI_API_KEY is not set in environment variables.' },
+        { status: 500 }
+      );
     }
 
-    const personaLabel =
+    const persona =
       coachGender === 'male'
         ? 'Male Ninja (🥷) fitness & nutrition coach'
         : 'Female Bloom (🌸) fitness & nutrition coach';
 
-    const systemInstruction = `You are a helpful, concise ${personaLabel} inside a fitness and wellness app for ages 0–90. Give clear, practical advice on workouts, muscle groups, mobility, calorie/protein gain combos, and daily health habits without medical diagnosis.`;
+    const systemInstruction = `You are a helpful, concise ${persona} for a fitness and wellness app. Give practical workout, mobility, hydration, and calorie/protein guidance without giving medical diagnoses.`;
 
-    const recentTurns = history
+    const formattedHistory = history
       .slice(-8)
-      .filter((t) => t && typeof t.text === 'string' && t.text.trim().length > 0)
-      .map((t) => ({
-        role: t.role === 'model' ? 'model' : 'user',
-        parts: [{ text: t.text.trim() }],
+      .filter((item) => item && typeof item.text === 'string' && item.text.trim().length > 0)
+      .map((item) => ({
+        role: item.role === 'model' ? 'model' : 'user',
+        parts: [{ text: item.text.trim() }],
       }));
 
     const contents =
-      recentTurns.length > 0
-        ? recentTurns
+      formattedHistory.length > 0
+        ? formattedHistory
         : [{ role: 'user', parts: [{ text: message }] }];
 
-    const isBearerToken = apiKey.startsWith('AQ.') || apiKey.startsWith('ya29.');
-    const endpoint = isBearerToken
-      ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
-      : `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(
-          apiKey
-        )}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${encodeURIComponent(
+      apiKey
+    )}`;
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (isBearerToken) {
-      headers.Authorization = `Bearer ${apiKey}`;
-    }
-
-    const geminiRes = await fetch(endpoint, {
+    const response = await fetch(endpoint, {
       method: 'POST',
-      headers,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: {
           parts: [{ text: systemInstruction }],
@@ -65,24 +58,35 @@ export async function POST(req: Request) {
         contents,
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 600,
+          maxOutputTokens: 700,
         },
       }),
     });
 
-    if (!geminiRes.ok) {
-      return NextResponse.json({ reply: '' }, { status: 200 });
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const apiMsg =
+        data?.error?.message || `Gemini API returned HTTP ${response.status}`;
+      return NextResponse.json({ reply: '', error: apiMsg }, { status: response.status });
     }
 
-    const data = await geminiRes.json().catch(() => null);
     const reply =
       data?.candidates?.[0]?.content?.parts
-        ?.map((p: { text?: string }) => p?.text || '')
+        ?.map((part: { text?: string }) => part?.text || '')
         .join('')
         .trim() || '';
 
+    if (!reply) {
+      return NextResponse.json(
+        { reply: '', error: 'Gemini returned an empty response.' },
+        { status: 502 }
+      );
+    }
+
     return NextResponse.json({ reply }, { status: 200 });
-  } catch {
-    return NextResponse.json({ reply: '' }, { status: 200 });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : 'Request failed';
+    return NextResponse.json({ reply: '', error: detail }, { status: 500 });
   }
 }
