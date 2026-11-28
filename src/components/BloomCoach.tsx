@@ -8,6 +8,9 @@ interface ChatMsg {
   text: string;
 }
 
+const CREATOR_REGEX =
+  /\b(who (created|made|built|designed|programmed|developed) you|who is your creator|your maker|who made this ai)\b/i;
+
 export default function BloomCoach() {
   const [open, setOpen] = useState(false);
   const [coachGender, setCoachGender] = useState<'male' | 'female' | null>('female');
@@ -16,7 +19,7 @@ export default function BloomCoach() {
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: 'model',
-      text: '🌸 Connected to Gemini! Ask me about workouts, diet, or protein.',
+      text: '🌸 Hi! Ask me in simple words about workouts, water, or calorie & protein gain foods.',
     },
   ]);
 
@@ -37,7 +40,7 @@ export default function BloomCoach() {
     setMessages([
       {
         role: 'model',
-        text: `${chosenIcon} Ready! What workout or nutrition question can I help with?`,
+        text: `${chosenIcon} Ready! Ask me anything about exercises, water, or calorie & protein combos.`,
       },
     ]);
   };
@@ -48,6 +51,12 @@ export default function BloomCoach() {
     const updated = [...messages, { role: 'user' as const, text: userText }];
     setMessages(updated);
     setInput('');
+
+    if (CREATOR_REGEX.test(userText)) {
+      setMessages([...updated, { role: 'model', text: `${icon} Harsh's wife.` }]);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -62,20 +71,19 @@ export default function BloomCoach() {
       });
 
       const data = await res.json().catch(() => ({}));
+      const replyText =
+        typeof data?.reply === 'string' && data.reply.trim()
+          ? data.reply.trim()
+          : `${icon} I'm ready to help with workouts, hydration, and calorie & protein combos.`;
 
-      if (res.ok && typeof data?.reply === 'string' && data.reply.trim()) {
-        setMessages([...updated, { role: 'model', text: data.reply.trim() }]);
-      } else {
-        const errText =
-          typeof data?.error === 'string' && data.error.trim()
-            ? data.error.trim()
-            : `Could not reach Gemini (${res.status}). Check GEMINI_API_KEY.`;
-        setMessages([...updated, { role: 'model', text: `⚠️ ${errText}` }]);
-      }
+      setMessages([...updated, { role: 'model', text: replyText }]);
     } catch {
       setMessages([
         ...updated,
-        { role: 'model', text: '⚠️ Network error while calling /api/coach.' },
+        {
+          role: 'model',
+          text: `${icon} Having a quick connection hiccup—try asking again in a moment.`,
+        },
       ]);
     } finally {
       setLoading(false);
