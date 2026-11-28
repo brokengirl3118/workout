@@ -46,6 +46,7 @@ import {
   matchesTimeOfDay,
 } from '@/lib/exerciseFilters';
 import { WELLNESS_TOOLS, TOOL_CATEGORIES, ToolCategory, WellnessTool } from '@/lib/wellnessToolsData';
+import { EXTRA_UNIQUE_FEATURES } from '@/lib/extraUniqueFeatures';
 import LevelGuideModal from '@/components/LevelGuideModal';
 import BloomCoach from '@/components/BloomCoach';
 import ExerciseAnimator from '@/components/ExerciseAnimator';
@@ -54,6 +55,7 @@ import GuidedExercisePlayer from '@/components/GuidedExercisePlayer';
 import WellnessStudioHub, { InteractiveToolModal } from '@/components/WellnessStudioHub';
 import WelcomeSplash from '@/components/WelcomeSplash';
 import NutritionGainModal from '@/components/NutritionGainModal';
+import StepReveal from '@/components/StepReveal';
 import {
   AuthModal,
   NotificationBell,
@@ -341,6 +343,19 @@ export default function HomePage() {
   const activeGoalObj = TARGET_GOALS.find((g) => g.id === selectedGoal);
   const activeTimeObj = TIME_OF_DAY_OPTIONS.find((t) => t.id === selectedTime);
 
+  const homeExtras = useMemo(
+    () => EXTRA_UNIQUE_FEATURES.filter((f) => f.section === 'home'),
+    []
+  );
+  const exerciseExtras = useMemo(
+    () => EXTRA_UNIQUE_FEATURES.filter((f) => f.section === 'exercises'),
+    []
+  );
+  const aboutExtras = useMemo(
+    () => EXTRA_UNIQUE_FEATURES.filter((f) => f.section === 'about'),
+    []
+  );
+
   const favoriteExercises = useMemo(
     () => exercises.filter((ex) => favoriteIds.includes(ex.id)).slice(0, 6),
     [exercises, favoriteIds]
@@ -431,8 +446,8 @@ export default function HomePage() {
     <main className="relative min-h-screen overflow-x-hidden">
       <WelcomeSplash />
 
-      {/* STICKY NAVIGATION BAR */}
-      <nav className="sticky top-0 z-40 border-b border-white/10 bg-[var(--bg-nav)] backdrop-blur-md">
+      {/* STICKY NAVIGATION BAR WITH PANE BORDERS */}
+      <nav className="nav-pane sticky top-0 z-40 bg-[var(--bg-nav)] backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <button
             onClick={() => setActiveNav('home')}
@@ -442,7 +457,7 @@ export default function HomePage() {
             🌸
           </button>
 
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="nav-pane-group flex flex-wrap items-center gap-1.5">
             {[
               { id: 'home', label: 'Home', icon: Home },
               { id: 'maintainer', label: 'Maintainer', icon: HeartPulse },
@@ -513,9 +528,9 @@ export default function HomePage() {
           PAGE 1: HOME
          ========================================================= */}
       {activeNav === 'home' && (
-        <div className="mx-auto max-w-5xl space-y-7 px-4 py-7">
+        <div className="animate-step-open mx-auto max-w-5xl space-y-7 px-4 py-7">
           {/* 1. AGE GROUPS AT TOP */}
-          <section className="space-y-3">
+          <StepReveal className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-extrabold text-white">Age Groups</h2>
               <div className="flex items-center gap-2">
@@ -582,10 +597,10 @@ export default function HomePage() {
                 );
               })}
             </div>
-          </section>
+          </StepReveal>
 
           {/* 2. DAILY ESSENTIALS */}
-          <section className="grid gap-3.5 md:grid-cols-3">
+          <StepReveal delayMs={60} className="grid gap-3.5 md:grid-cols-3">
             <div className="matte-box-soft flex flex-col justify-between rounded-2xl p-4">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-xs font-extrabold text-sky-400">
@@ -663,10 +678,10 @@ export default function HomePage() {
                 <Shuffle className="h-3.5 w-3.5" /> Spin Exercise
               </button>
             </div>
-          </section>
+          </StepReveal>
 
           {/* 3. MOOD CHECK-IN */}
-          <section className="matte-box-soft rounded-2xl p-4">
+          <StepReveal delayMs={100} className="matte-box-soft rounded-2xl p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs font-extrabold text-white">How do you feel right now?</p>
               <div className="flex flex-wrap gap-1.5">
@@ -706,11 +721,11 @@ export default function HomePage() {
                 </button>
               </div>
             )}
-          </section>
+          </StepReveal>
 
           {/* 4. SAVED FAVORITES */}
           {favoriteExercises.length > 0 && (
-            <section className="space-y-3">
+            <StepReveal className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="flex items-center gap-1.5 text-lg font-extrabold text-white">
                   <Heart className="h-4 w-4 fill-pink-500 text-pink-500" /> Saved Moves
@@ -740,11 +755,11 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-            </section>
+            </StepReveal>
           )}
 
           {/* 5. MAIN ACTION BANNER */}
-          <section className="matte-box rounded-3xl p-6">
+          <StepReveal className="matte-box rounded-3xl p-6">
             <div className="flex flex-wrap items-center justify-between gap-5">
               <div>
                 <h2 className="text-2xl font-extrabold text-white sm:text-3xl">
@@ -779,10 +794,10 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
-          </section>
+          </StepReveal>
 
           {/* 6. QUICK TOOLS GRID */}
-          <section className="space-y-3">
+          <StepReveal className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-extrabold text-white">Quick Tools</h3>
               <button
@@ -812,10 +827,10 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
-          </section>
+          </StepReveal>
 
           {/* 7. TOOL CATEGORIES */}
-          <section className="matte-box rounded-3xl p-5">
+          <StepReveal className="matte-box rounded-3xl p-5">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-extrabold text-white">Categories</h3>
               <button
@@ -841,10 +856,10 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
-          </section>
+          </StepReveal>
 
           {/* 8. LEVEL GUIDES */}
-          <section className="matte-box rounded-3xl p-5">
+          <StepReveal className="matte-box rounded-3xl p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400">
@@ -865,21 +880,45 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
-          </section>
+          </StepReveal>
+
+          {/* 9. UNIQUE HOME DAILY EXTRAS (IDs 100 - 120) */}
+          <StepReveal className="space-y-3">
+            <h3 className="text-lg font-extrabold text-white">Daily Extras</h3>
+            <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3">
+              {homeExtras.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setQuickTool(item)}
+                  className="matte-box-soft flex items-center gap-2.5 rounded-2xl p-3 text-left transition hover:-translate-y-0.5"
+                >
+                  <span className="text-lg">{item.emoji}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-extrabold text-white">{item.title}</p>
+                    <p className="truncate text-[10px] text-slate-400">{item.tagline}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </StepReveal>
         </div>
       )}
 
       {/* =========================================================
           PAGE 2: MAINTAINER
          ========================================================= */}
-      {activeNav === 'maintainer' && <MaintainerView />}
+      {activeNav === 'maintainer' && (
+        <div className="animate-step-open">
+          <MaintainerView />
+        </div>
+      )}
 
       {/* =========================================================
           PAGE 3: EXERCISES WIZARD
          ========================================================= */}
       {activeNav === 'exercises' && (
-        <section className="mx-auto max-w-5xl px-4 py-8">
-          <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
+        <section className="animate-step-open mx-auto max-w-5xl space-y-8 px-4 py-8">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {[
               { step: 1 as ExerciseStep, label: '1. Body Part' },
               { step: 2 as ExerciseStep, label: '2. Goal & Time' },
@@ -900,7 +939,7 @@ export default function HomePage() {
           </div>
 
           {exerciseStep === 1 && (
-            <div className="matte-box mx-auto max-w-3xl rounded-3xl p-6">
+            <div className="animate-step-open matte-box mx-auto max-w-3xl rounded-3xl p-6">
               <h2 className="text-center text-2xl font-extrabold text-white">Select Body Part</h2>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
@@ -928,7 +967,7 @@ export default function HomePage() {
               </div>
 
               {activeBodyGroup && activeBodyGroup.muscles.length > 1 && (
-                <div className="matte-box-soft mt-6 rounded-2xl p-4">
+                <div className="animate-step-open matte-box-soft mt-6 rounded-2xl p-4">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-sky-400">
                     {activeBodyGroup.label} Muscles (A–Z)
                   </p>
@@ -970,7 +1009,7 @@ export default function HomePage() {
           )}
 
           {exerciseStep === 2 && (
-            <div className="matte-box mx-auto max-w-3xl rounded-3xl p-6">
+            <div className="animate-step-open matte-box mx-auto max-w-3xl rounded-3xl p-6">
               <h2 className="text-center text-2xl font-extrabold text-white">Goal &amp; Time</h2>
 
               <div className="mt-6">
@@ -1034,7 +1073,7 @@ export default function HomePage() {
           )}
 
           {exerciseStep === 3 && (
-            <div>
+            <div className="animate-step-open">
               <div className="matte-box rounded-3xl p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -1125,62 +1164,63 @@ export default function HomePage() {
               ) : (
                 <>
                   <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {visibleExercises.map((ex) => {
+                    {visibleExercises.map((ex, idx) => {
                       const isFav = favoriteIds.includes(ex.id);
                       return (
-                        <div
-                          key={ex.id}
-                          onClick={() => {
-                            setActiveExercise(ex);
-                            setIsGuidedMode(false);
-                          }}
-                          className="matte-box-soft group relative cursor-pointer overflow-hidden rounded-2xl transition duration-200 hover:-translate-y-1"
-                        >
-                          <div className="relative h-44 w-full overflow-hidden bg-black">
-                            {ex.media_url && (
-                              <img
-                                src={ex.media_url}
-                                alt={ex.name}
-                                loading="lazy"
-                                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                              />
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFavorite(ex.id, ex.name);
-                              }}
-                              title="Save Favorite"
-                              className="absolute left-2.5 top-2.5 rounded-full bg-black/75 p-1.5 backdrop-blur transition hover:scale-110"
-                            >
-                              <Heart
-                                className={`h-3.5 w-3.5 ${
-                                  isFav ? 'fill-pink-500 text-pink-500' : 'text-slate-300'
-                                }`}
-                              />
-                            </button>
-                            <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-bold text-sky-300 backdrop-blur">
-                              <PlayCircle className="h-3 w-3" /> Live Form
+                        <StepReveal key={ex.id} delayMs={Math.min(idx * 25, 250)}>
+                          <div
+                            onClick={() => {
+                              setActiveExercise(ex);
+                              setIsGuidedMode(false);
+                            }}
+                            className="matte-box-soft group relative cursor-pointer overflow-hidden rounded-2xl transition duration-200 hover:-translate-y-1"
+                          >
+                            <div className="relative h-44 w-full overflow-hidden bg-black">
+                              {ex.media_url && (
+                                <img
+                                  src={ex.media_url}
+                                  alt={ex.name}
+                                  loading="lazy"
+                                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                                />
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFavorite(ex.id, ex.name);
+                                }}
+                                title="Save Favorite"
+                                className="absolute left-2.5 top-2.5 rounded-full bg-black/75 p-1.5 backdrop-blur transition hover:scale-110"
+                              >
+                                <Heart
+                                  className={`h-3.5 w-3.5 ${
+                                    isFav ? 'fill-pink-500 text-pink-500' : 'text-slate-300'
+                                  }`}
+                                />
+                              </button>
+                              <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-bold text-sky-300 backdrop-blur">
+                                <PlayCircle className="h-3 w-3" /> Live Form
+                              </div>
+                            </div>
+                            <div className="p-3.5">
+                              <div className="flex flex-wrap gap-1 text-[10px] font-bold">
+                                <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-sky-400">
+                                  {ex.level}
+                                </span>
+                                <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-indigo-400">
+                                  {ex.muscle_group}
+                                </span>
+                                <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-pink-400">
+                                  {ex.equipment}
+                                </span>
+                              </div>
+                              <h3 className="mt-2 text-base font-extrabold text-white group-hover:text-sky-400">
+                                {ex.name}
+                              </h3>
+                              <p className="mt-1 text-[11px] text-slate-400">{ex.sets_reps}</p>
                             </div>
                           </div>
-                          <div className="p-3.5">
-                            <div className="flex flex-wrap gap-1 text-[10px] font-bold">
-                              <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-sky-400">
-                                {ex.level}
-                              </span>
-                              <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-indigo-400">
-                                {ex.muscle_group}
-                              </span>
-                              <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-pink-400">
-                                {ex.equipment}
-                              </span>
-                            </div>
-                            <h3 className="mt-2 text-base font-extrabold text-white group-hover:text-sky-400">
-                              {ex.name}
-                            </h3>
-                            <p className="mt-1 text-[11px] text-slate-400">{ex.sets_reps}</p>
-                          </div>
-                        </div>
+                        </StepReveal>
                       );
                     })}
                   </div>
@@ -1199,6 +1239,26 @@ export default function HomePage() {
               )}
             </div>
           )}
+
+          {/* UNIQUE EXERCISE EXTRAS (IDs 141 - 162) */}
+          <StepReveal className="space-y-3 pt-4">
+            <h3 className="text-lg font-extrabold text-white">Workout Boosters</h3>
+            <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3">
+              {exerciseExtras.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setQuickTool(item)}
+                  className="matte-box-soft flex items-center gap-2.5 rounded-2xl p-3 text-left transition hover:-translate-y-0.5"
+                >
+                  <span className="text-lg">{item.emoji}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-extrabold text-white">{item.title}</p>
+                    <p className="truncate text-[10px] text-slate-400">{item.tagline}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </StepReveal>
         </section>
       )}
 
@@ -1206,19 +1266,21 @@ export default function HomePage() {
           PAGE 4: HEALTH TOOLS
          ========================================================= */}
       {activeNav === 'tools' && (
-        <WellnessStudioHub
-          xp={xp}
-          onEarnXp={earnXp}
-          initialCategory={toolCategory}
-        />
+        <div className="animate-step-open">
+          <WellnessStudioHub
+            xp={xp}
+            onEarnXp={earnXp}
+            initialCategory={toolCategory}
+          />
+        </div>
       )}
 
       {/* =========================================================
           PAGE 5: ABOUT
          ========================================================= */}
       {activeNav === 'about' && (
-        <section className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center px-4 py-12">
-          <div className="matte-box relative w-full overflow-hidden rounded-3xl px-8 py-16 text-center shadow-2xl shadow-pink-500/10">
+        <section className="animate-step-open mx-auto max-w-4xl space-y-8 px-4 py-10">
+          <div className="matte-box relative flex min-h-[55vh] w-full flex-col items-center justify-center overflow-hidden rounded-3xl px-8 py-16 text-center shadow-2xl shadow-pink-500/10">
             <span className="animate-float-up pointer-events-none absolute left-[18%] top-2/3 text-lg opacity-60">
               🌸
             </span>
@@ -1237,13 +1299,32 @@ export default function HomePage() {
               Created for my Hubie with Love.
             </h2>
           </div>
+
+          <StepReveal className="space-y-3">
+            <h3 className="text-lg font-extrabold text-white">Love Notes</h3>
+            <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3">
+              {aboutExtras.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setQuickTool(item)}
+                  className="matte-box-soft flex items-center gap-2.5 rounded-2xl p-3 text-left transition hover:-translate-y-0.5"
+                >
+                  <span className="text-lg">{item.emoji}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-extrabold text-white">{item.title}</p>
+                    <p className="truncate text-[10px] text-slate-400">{item.tagline}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </StepReveal>
         </section>
       )}
 
       {/* Exercise Modal */}
       {activeExercise && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="matte-box relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl p-5 shadow-2xl">
+          <div className="animate-step-open matte-box relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl p-5 shadow-2xl">
             <div className="absolute right-4 top-4 flex items-center gap-1.5">
               <button
                 onClick={() => toggleFavorite(activeExercise.id, activeExercise.name)}
@@ -1275,7 +1356,7 @@ export default function HomePage() {
             </p>
 
             {isGuidedMode ? (
-              <div className="mt-4">
+              <div className="animate-step-open mt-4">
                 <GuidedExercisePlayer
                   exercise={activeExercise}
                   onExit={() => {

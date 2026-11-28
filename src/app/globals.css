@@ -107,3 +107,30 @@ body {
 .animate-float-up {
   animation: float-up 3.6s ease-in-out infinite;
 }
+/* Navigation Pane Border */
+.nav-pane {
+  border-bottom: 1.5px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 6px 24px -8px rgba(244, 114, 182, 0.22);
+}
+
+.nav-pane-group {
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 1rem;
+  padding: 0.25rem;
+}
+
+/* Smooth Step Opening Animation */
+@keyframes step-open {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-step-open {
+  animation: step-open 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
