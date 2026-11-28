@@ -87,7 +87,7 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
 
   const calcResult = useMemo(() => {
     if (!tool || tool.engine !== 'calculator') return null;
-    const hM = height / 100;
+    const hM = Math.max(0.5, height / 100);
     const bmr =
       gender === 'male'
         ? 10 * weight + 6.25 * height - 5 * age + 5
@@ -285,11 +285,18 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="matte-box relative max-h-[88vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 text-[var(--text-primary)] shadow-2xl">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="matte-box relative z-[121] max-h-[88vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 text-[var(--text-primary)] shadow-2xl"
+      >
         <button
+          type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-xl bg-sky-500/10 p-1.5 text-[var(--text-muted)] hover:bg-sky-500/20 hover:text-[var(--text-primary)]"
+          className="absolute right-4 top-4 rounded-xl bg-sky-500/15 p-1.5 text-[var(--text-primary)] hover:bg-sky-500/25"
         >
           <X className="h-4 w-4" />
         </button>
@@ -548,6 +555,7 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
             <p className="mt-2 text-5xl font-extrabold text-[var(--text-primary)]">{secondsLeft}s</p>
             <div className="mt-5 flex justify-center gap-2.5">
               <button
+                type="button"
                 onClick={() => setRunning((r) => !r)}
                 className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 px-5 py-2.5 text-xs font-bold text-white"
               >
@@ -555,6 +563,7 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
                 {running ? 'Pause' : 'Start'}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setRunning(false);
                   setSecondsLeft(tool.timerSeconds || 60);
@@ -590,6 +599,7 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
             {tool.steps.map((step, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={() => setChecked((p) => ({ ...p, [i]: !p[i] }))}
                 className={`flex w-full items-start gap-2.5 rounded-xl p-3 text-left text-xs font-semibold transition ${
                   checked[i]
@@ -610,6 +620,7 @@ export function InteractiveToolModal({ tool, onClose, onEarnXp }: ModalProps) {
 
         <div className="mt-5 border-t border-white/10 pt-3.5">
           <button
+            type="button"
             disabled={claimed}
             onClick={() => {
               setClaimed(true);
@@ -690,6 +701,7 @@ export default function WellnessStudioHub({
           {TOOL_CATEGORIES.map((c) => (
             <button
               key={c.id}
+              type="button"
               onClick={() => setSelectedCat(c.id)}
               className={`flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
                 selectedCat === c.id
